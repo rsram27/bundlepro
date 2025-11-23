@@ -1,0 +1,684 @@
+#!/bin/bash
+# ============================================
+# Bundle Pro - bundlepro
+# Versao: 1.2.0
+# ============================================
+
+# Cores para output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Diretorio esperado
+EXPECTED_DIR="$HOME/bundlepro-agr-cti-databricks"
+
+# Variaveis de controle
+CREATE_JOB=false
+# Sucesso
+echo ""
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}Projeto criado com sucesso!${NC}"
+echo -e "${GREEN}========================================${NC}"
+echo ""
+echo -e "${BLUE}Projeto:${NC}     ${PROJECT_NAME}"
+echo -e "${BLUE}Localizacao:${NC} ${PROJECT_DIR}"
+echo -e "${BLUE}Branch:${NC}      ${CURRENT_BRANCH}"
+echo -e "${BLUE}Job criado:${NC}  $([ "$CREATE_JOB" == "true" ] && echo "Sim" || echo "Nao")"
+echo ""
+
+# PROXIMOS PASSOS
+echo -e "${YELLOW}========================================${NC}"
+echo -e "${YELLOW}PROXIMOS PASSOS${NC}"
+echo -e "${YELLOW}========================================${NC}"
+echo ""
+echo -e "${GREEN}1. Entre no diretorio do projeto:${NC}"
+echo ""
+echo -e "${CYAN}   cd ${PROJECT_NAME}${NC}"
+echo ""
+echo -e "${GREEN}2. Edite os arquivos conforme necessario:${NC}"
+echo ""
+echo "   nano src/notebook.py"
+if [ "$CREATE_JOB" == "true" ]; then
+echo "   nano resources/jobs.yml"
+fi
+echo "   nano databricks.yml"
+echo ""
+echo -e "${GREEN}3. Valide o bundle:${NC}"
+echo ""
+echo "   databricks bundle validate -t dev"
+echo ""
+echo -e "${GREEN}4. Commit e push:${NC}"
+echo ""
+echo "   git add ."
+echo "   git commit -m 'Add: ${PROJECT_NAME}'"
+echo "   git push origin ${CURRENT_BRANCH}"
+echo ""
+echo -e "${CYAN}DICA: Consulte ${PROJECT_NAME}/INSTRUCOES.txt para o passo a passo completo${NC}"
+echo ""
+        echo -e "${CYAN}Execute:${NC}"
+        echo "  cd $EXPECTED_DIR"
+        echo "  bundlepro $1"
+        echo ""
+        exit 1
+    fi
+}
+
+# Verificar e criar branch
+check_and_create_branch() {
+    FEATURE_BRANCH="feature/$1"
+    CURRENT_BRANCH=$(git branch --show-current 2>/dev/null)
+    
+    # Bloquear main
+    if [ "$CURRENT_BRANCH" == "main" ]; then
+        echo -e "${RED}[ERRO] Voce esta na branch 'main'!${NC}"
+        echo ""
+        echo -e "${YELLOW}Nao e permitido criar projetos diretamente na main.${NC}"
+        echo ""
+        echo -e "${CYAN}Mudando para develop...${NC}"
+        git checkout develop
+        git pull origin develop
+        CURRENT_BRANCH="develop"
+    fi
+
+    # Se estiver em develop, criar a feature branch
+    if [ "$CURRENT_BRANCH" == "develop" ]; then
+        echo -e "${CYAN}Branch atual: develop${NC}"
+        
+        # Verificar se a feature branch ja existe
+        if git show-ref --verify --quiet "refs/heads/$FEATURE_BRANCH" 2>/dev/null; then
+            echo -e "${YELLOW}[AVISO] A branch '${FEATURE_BRANCH}' ja existe.${NC}"
+            echo -e "${CYAN}Mudando para a branch existente...${NC}"
+            git checkout "$FEATURE_BRANCH"
+            echo -e "${GREEN}[OK] Usando branch: ${FEATURE_BRANCH}${NC}"
+        else
+            echo -e "${CYAN}Criando branch: ${FEATURE_BRANCH}...${NC}"
+            git checkout -b "$FEATURE_BRANCH"
+            echo -e "${GREEN}[OK] Branch criada: ${FEATURE_BRANCH}${NC}"
+        fi
+    # Se estiver em outra feature branch, criar nova
+    elif [[ "$CURRENT_BRANCH" == feature/* ]]; then
+        # Se ja esta na branch correta do projeto, continuar
+        if [ "$CURRENT_BRANCH" == "$FEATURE_BRANCH" ]; then
+            echo -e "${GREEN}[OK] Ja esta na branch: ${FEATURE_BRANCH}${NC}"
+        else
+            # Esta em outra feature branch, voltar para develop e criar nova
+            echo -e "${YELLOW}[AVISO] Voce esta na branch: ${CURRENT_BRANCH}${NC}"
+            echo -e "${CYAN}Voltando para develop...${NC}"
+            git checkout develop
+            git pull origin develop
+            
+            # Verificar se a feature branch ja existe
+            if git show-ref --verify --quiet "refs/heads/$FEATURE_BRANCH" 2>/dev/null; then
+                echo -e "${YELLOW}[AVISO] A branch '${FEATURE_BRANCH}' ja existe.${NC}"
+                echo -e "${CYAN}Mudando para a branch existente...${NC}"
+                git checkout "$FEATURE_BRANCH"
+                echo -e "${GREEN}[OK] Usando branch: ${FEATURE_BRANCH}${NC}"
+            else
+                echo -e "${CYAN}Criando branch: ${FEATURE_BRANCH}...${NC}"
+                git checkout -b "$FEATURE_BRANCH"
+                echo -e "${GREEN}[OK] Branch criada: ${FEATURE_BRANCH}${NC}"
+            fi
+        fi
+    else
+        # Branch desconhecida
+        echo -e "${YELLOW}[AVISO] Branch atual: ${CURRENT_BRANCH}${NC}"
+        echo -e "${CYAN}Voltando para develop...${NC}"
+        git checkout develop
+        git pull origin develop
+        
+        # Verificar se a feature branch ja existe
+        if git show-ref --verify --quiet "refs/heads/$FEATURE_BRANCH" 2>/dev/null; then
+            echo -e "${YELLOW}[AVISO] A branch '${FEATURE_BRANCH}' ja existe.${NC}"
+            echo -e "${CYAN}Mudando para a branch existente...${NC}"
+            git checkout "$FEATURE_BRANCH"
+            echo -e "${GREEN}[OK] Usando branch: ${FEATURE_BRANCH}${NC}"
+        else
+            echo -e "${CYAN}Criando branch: ${FEATURE_BRANCH}...${NC}"
+            git checkout -b "$FEATURE_BRANCH"
+            echo -e "${GREEN}[OK] Branch criada: ${FEATURE_BRANCH}${NC}"
+        fi
+    fi
+    
+    echo ""
+}
+
+# Perguntas interativas
+ask_create_job() {
+    echo ""
+    read -p "Deseja criar um Job para este projeto? (S/n): " RESP
+    if [ "$RESP" != "n" ] && [ "$RESP" != "N" ]; then
+        CREATE_JOB=true
+    else
+        CREATE_JOB=false
+    fi
+}
+
+# Criar arquivo de job
+create_job_file() {
+    echo -e "  ${CYAN}[CRIANDO]${NC} resources/jobs.yml"
+    cat > "$PROJECT_DIR/resources/jobs.yml" << 'JOBEOF'
+resources:
+  jobs:
+    notebook_job:
+      name: "[${bundle.target}] ${bundle.name} Job"
+      
+      tasks:
+        - task_key: run_notebook
+          notebook_task:
+            notebook_path: ../src/notebook.py
+            base_parameters:
+              catalog: ${var.catalog}
+              environment: ${bundle.target}
+          
+          new_cluster:
+            spark_version: "14.3.x-scala2.12"
+            node_type_id: "m5d.large"
+            driver_node_type_id: "m5d.large"
+            num_workers: 1
+            enable_elastic_disk: true
+            data_security_mode: "USER_ISOLATION"
+            aws_attributes:
+              first_on_demand: 1
+              availability: "SPOT_WITH_FALLBACK"
+              zone_id: "auto"
+              spot_bid_price_percent: 100
+            spark_conf:
+              spark.databricks.delta.optimizeWrite.enabled: "true"
+              spark.databricks.delta.autoCompact.enabled: "true"
+            spark_env_vars:
+              PYSPARK_PYTHON: "/databricks/python3/bin/python3"
+            custom_tags:
+              Environment: ${bundle.target}
+              Project: ${bundle.name}
+            
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: "America/Sao_Paulo"
+        pause_status: PAUSED
+      
+      email_notifications:
+        on_failure:
+          - data-eng@bundlepro.com.br
+      
+      max_concurrent_runs: 1
+      timeout_seconds: 7200
+JOBEOF
+}
+
+# Criar README
+create_readme() {
+    echo -e "  ${CYAN}[CRIANDO]${NC} README.md"
+    
+    cat > "$PROJECT_DIR/README.md" << READMEEOF
+# ${PROJECT_NAME}
+
+Projeto criado com bundlepro.
+
+## Estrutura
+
+READMEEOF
+
+    echo '```' >> "$PROJECT_DIR/README.md"
+    echo "${PROJECT_NAME}/" >> "$PROJECT_DIR/README.md"
+    echo "├── databricks.yml    # Configuracao do bundle" >> "$PROJECT_DIR/README.md"
+    echo "├── src/" >> "$PROJECT_DIR/README.md"
+    echo "│   └── notebook.py   # Notebook principal" >> "$PROJECT_DIR/README.md"
+    
+    if [ "$CREATE_JOB" == "true" ]; then
+        echo "├── resources/" >> "$PROJECT_DIR/README.md"
+        echo "│   └── jobs.yml      # Definicao do job" >> "$PROJECT_DIR/README.md"
+    fi
+    
+    echo "└── README.md" >> "$PROJECT_DIR/README.md"
+    echo '```' >> "$PROJECT_DIR/README.md"
+    
+    cat >> "$PROJECT_DIR/README.md" << READMEEOF
+
+## Comandos
+
+READMEEOF
+
+    echo '```bash' >> "$PROJECT_DIR/README.md"
+    echo "# Validar" >> "$PROJECT_DIR/README.md"
+    echo "databricks bundle validate -t dev" >> "$PROJECT_DIR/README.md"
+    echo "" >> "$PROJECT_DIR/README.md"
+    echo "# Deploy" >> "$PROJECT_DIR/README.md"
+    echo "databricks bundle deploy -t dev" >> "$PROJECT_DIR/README.md"
+    
+    if [ "$CREATE_JOB" == "true" ]; then
+        echo "" >> "$PROJECT_DIR/README.md"
+        echo "# Executar job" >> "$PROJECT_DIR/README.md"
+        echo "databricks bundle run -t dev notebook_job" >> "$PROJECT_DIR/README.md"
+    fi
+    
+    echo '```' >> "$PROJECT_DIR/README.md"
+}
+
+# Criar arquivo de instrucoes
+create_instructions_file() {
+    # Capturar a branch ATUAL apos a mudanca
+    local ACTUAL_BRANCH=$(git branch --show-current 2>/dev/null)
+    
+    echo -e "  ${CYAN}[CRIANDO]${NC} INSTRUCOES.txt"
+    
+    cat > "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
+========================================
+INSTRUCOES DE USO - ${PROJECT_NAME}
+========================================
+
+Projeto criado em: $(date '+%Y-%m-%d %H:%M:%S')
+Branch: ${ACTUAL_BRANCH}
+Job criado: $([ "$CREATE_JOB" == "true" ] && echo "Sim" || echo "Nao")
+
+========================================
+PASSO A PASSO
+========================================
+
+1. ENTRAR NO DIRETORIO DO PROJETO
+   
+   cd ${PROJECT_NAME}
+
+2. EDITAR ARQUIVOS
+   
+   Edite o notebook principal:
+   nano src/notebook.py
+
+INSTREOF
+
+    if [ "$CREATE_JOB" == "true" ]; then
+        cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
+   Edite a configuracao do job (schedule, cluster, etc):
+   nano resources/jobs.yml
+   
+INSTREOF
+    fi
+
+    cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
+   Edite o databricks.yml se necessario:
+   nano databricks.yml
+
+3. VALIDAR O BUNDLE
+   
+   databricks bundle validate -t dev
+
+4. TESTAR LOCALMENTE (OPCIONAL)
+   
+   databricks bundle deploy -t dev
+INSTREOF
+
+    if [ "$CREATE_JOB" == "true" ]; then
+        cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
+   databricks bundle run -t dev notebook_job
+INSTREOF
+    fi
+
+    cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
+
+5. COMMIT E PUSH PARA O REPOSITORIO
+   
+   git add .
+   git commit -m 'Add: ${PROJECT_NAME}'
+   git push origin ${ACTUAL_BRANCH}
+
+6. ABRIR PULL REQUEST
+   
+   Acesse: https://github.com/BundlePro/bundlepro-agr-cti-databricks
+   
+   Crie um Pull Request:
+   - De (compare): ${ACTUAL_BRANCH}
+   - Para (base): develop
+   
+   IMPORTANTE: O PR deve ser para 'develop', NAO para 'main'!
+
+7. APOS MERGE EM DEVELOP
+   
+   O CI/CD fara deploy automatico em DEV.
+   Verifique no workspace DEV se o notebook foi deployado.
+INSTREOF
+
+    if [ "$CREATE_JOB" == "true" ]; then
+        cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
+   Verifique em Workflows > Jobs se o job foi criado.
+INSTREOF
+    fi
+
+    cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
+
+8. PROMOVER PARA PRODUCAO
+   
+   Apos validar em DEV, crie novo PR:
+   - De (compare): develop
+   - Para (base): main
+   
+   Apos merge, o CI/CD fara deploy em PROD.
+
+========================================
+COMANDOS UTEIS
+========================================
+
+# Validar bundle
+databricks bundle validate -t dev
+
+# Deploy para DEV
+databricks bundle deploy -t dev
+
+# Deploy para PROD (apos merge em main)
+databricks bundle deploy -t prod
+
+INSTREOF
+
+    if [ "$CREATE_JOB" == "true" ]; then
+        cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
+# Executar job manualmente
+databricks bundle run -t dev notebook_job
+
+INSTREOF
+    fi
+
+    cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
+# Ver logs
+databricks bundle run -t dev notebook_job --verbose
+
+========================================
+ARQUIVOS DO PROJETO
+========================================
+
+databricks.yml      - Configuracao do bundle
+src/notebook.py     - Notebook principal
+INSTREOF
+
+    if [ "$CREATE_JOB" == "true" ]; then
+        cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
+resources/jobs.yml  - Definicao do job
+INSTREOF
+    fi
+
+    cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
+README.md           - Documentacao do projeto
+INSTRUCOES.txt      - Este arquivo (nao commitado)
+
+========================================
+CONTATO
+========================================
+
+Em caso de duvidas, contate:
+Time Data Engineering - Bundle Pro
+
+========================================
+INSTREOF
+}
+
+# ============================================
+# INICIO DO SCRIPT
+# ============================================
+
+# Opcoes especiais
+if [ "$1" == "--version" ] || [ "$1" == "-v" ]; then
+    show_version
+    exit 0
+fi
+
+if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+    show_banner
+    show_usage
+    exit 0
+fi
+
+if [ -z "$1" ]; then
+    show_banner
+    echo -e "${RED}[ERRO] Nome do projeto e obrigatorio!${NC}"
+    echo ""
+    show_usage
+    exit 1
+fi
+
+PROJECT_NAME="$1"
+PROJECT_DIR="$EXPECTED_DIR/$PROJECT_NAME"
+
+if [[ ! "$PROJECT_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    echo -e "${RED}[ERRO] Nome do projeto invalido!${NC}"
+    echo -e "${YELLOW}Use apenas: letras, numeros, hifens (-) e underscores (_)${NC}"
+    exit 1
+fi
+
+show_banner
+
+# Verificar diretorio
+check_directory "$PROJECT_NAME"
+
+# Verificar e criar branch automaticamente
+check_and_create_branch "$PROJECT_NAME"
+
+echo ""
+echo -e "${BLUE}Projeto:${NC} ${PROJECT_NAME}"
+echo -e "${BLUE}Destino:${NC} ${PROJECT_DIR}"
+
+if [ -d "$PROJECT_DIR" ]; then
+    echo ""
+    echo -e "${RED}[ERRO] O projeto '${PROJECT_NAME}' ja existe em:${NC}"
+    echo -e "   ${PROJECT_DIR}"
+    exit 1
+fi
+
+# Pergunta interativa
+ask_create_job
+
+# Criar estrutura do projeto
+echo ""
+echo -e "${CYAN}Criando estrutura do projeto...${NC}"
+mkdir -p "$PROJECT_DIR/src"
+if [ "$CREATE_JOB" == "true" ]; then
+    mkdir -p "$PROJECT_DIR/resources"
+fi
+
+# Criar databricks.yml
+echo -e "  ${CYAN}[CRIANDO]${NC} databricks.yml"
+
+if [ "$CREATE_JOB" == "true" ]; then
+    cat > "$PROJECT_DIR/databricks.yml" << YMLEOF
+bundle:
+  name: ${PROJECT_NAME}
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: "Catalog name for the environment"
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-09564139-2394.cloud.databricks.com
+      root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
+    variables:
+      catalog: dev_catalog
+  
+  dev-ci:
+    mode: production
+    workspace:
+      host: https://dbc-09564139-2394.cloud.databricks.com
+      root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/dev
+    variables:
+      catalog: dev_catalog
+    run_as:
+      service_principal_name: 6d2042fe-fa7b-4712-93db-15ca91c2eff9
+
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-d5989d4c-48e0.cloud.databricks.com
+      root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
+    variables:
+      catalog: prd_catalog
+    run_as:
+      service_principal_name: SEU_CLIENT_ID_PROD_AQUI
+YMLEOF
+else
+    cat > "$PROJECT_DIR/databricks.yml" << YMLEOF
+bundle:
+  name: ${PROJECT_NAME}
+
+variables:
+  catalog:
+    description: "Catalog name for the environment"
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-09564139-2394.cloud.databricks.com
+      root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
+    variables:
+      catalog: dev_catalog
+  
+  dev-ci:
+    mode: production
+    workspace:
+      host: https://dbc-09564139-2394.cloud.databricks.com
+      root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/dev
+    variables:
+      catalog: dev_catalog
+    run_as:
+      service_principal_name: 6d2042fe-fa7b-4712-93db-15ca91c2eff9
+
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-d5989d4c-48e0.cloud.databricks.com
+      root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
+    variables:
+      catalog: prd_catalog
+    run_as:
+      service_principal_name: SEU_CLIENT_ID_PROD_AQUI
+YMLEOF
+fi
+
+# Criar notebook principal
+echo -e "  ${CYAN}[CRIANDO]${NC} src/notebook.py"
+cat > "$PROJECT_DIR/src/notebook.py" << 'NOTEBOOKEOF'
+# Databricks notebook source
+# MAGIC %md
+# MAGIC # Notebook Template
+# MAGIC 
+# MAGIC Este notebook foi criado pelo bundlepro.
+# MAGIC 
+# MAGIC ## Parametros
+# MAGIC - catalog: Catalog do Unity Catalog
+# MAGIC - environment: Ambiente (dev, prod)
+
+# COMMAND ----------
+
+# Parametros
+dbutils.widgets.text("catalog", "dev_catalog")
+dbutils.widgets.text("environment", "dev")
+
+catalog = dbutils.widgets.get("catalog")
+environment = dbutils.widgets.get("environment")
+
+print(f"Catalog: {catalog}")
+print(f"Environment: {environment}")
+
+# COMMAND ----------
+
+# Configurar catalog
+spark.sql(f"USE CATALOG {catalog}")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Seu codigo aqui
+# MAGIC 
+# MAGIC Edite este notebook conforme sua necessidade.
+
+# COMMAND ----------
+
+# Exemplo: listar schemas
+display(spark.sql("SHOW SCHEMAS"))
+
+# COMMAND ----------
+
+# Exemplo: criar DataFrame
+df = spark.createDataFrame([
+    (1, "Exemplo 1"),
+    (2, "Exemplo 2"),
+    (3, "Exemplo 3")
+], ["id", "descricao"])
+
+display(df)
+NOTEBOOKEOF
+
+# Criar job se solicitado
+if [ "$CREATE_JOB" == "true" ]; then
+    create_job_file
+fi
+
+# Criar .gitignore
+echo -e "  ${CYAN}[CRIANDO]${NC} .gitignore"
+cat > "$PROJECT_DIR/.gitignore" << 'GITIGNOREEOF'
+.databricks/
+*.pyc
+__pycache__/
+.vscode/
+.idea/
+*.log
+INSTRUCOES.txt
+GITIGNOREEOF
+
+# Criar README.md
+create_readme
+
+# Criar arquivo de instrucoes (DEPOIS de criar a branch)
+create_instructions_file
+
+# Obter branch atual para o resumo final
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "N/A")
+
+# Sucesso
+echo ""
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}Projeto criado com sucesso!${NC}"
+echo -e "${GREEN}========================================${NC}"
+echo ""
+echo -e "${BLUE}Projeto:${NC}     ${PROJECT_NAME}"
+echo -e "${BLUE}Localizacao:${NC} ${PROJECT_DIR}"
+echo -e "${BLUE}Branch:${NC}      ${CURRENT_BRANCH}"
+echo -e "${BLUE}Job criado:${NC}  $([ "$CREATE_JOB" == "true" ] && echo "Sim" || echo "Nao")"
+echo ""
+
+# PROXIMOS PASSOS
+echo -e "${YELLOW}========================================${NC}"
+echo -e "${YELLOW}PROXIMOS PASSOS${NC}"
+echo -e "${YELLOW}========================================${NC}"
+echo ""
+echo -e "${GREEN}1. Entre no diretorio do projeto:${NC}"
+echo ""
+echo -e "${CYAN}   cd ${PROJECT_NAME}${NC}"
+echo ""
+echo -e "${GREEN}2. Edite os arquivos conforme necessario:${NC}"
+echo ""
+echo "   nano src/notebook.py"
+if [ "$CREATE_JOB" == "true" ]; then
+echo "   nano resources/jobs.yml"
+fi
+echo "   nano databricks.yml"
+echo ""
+echo -e "${GREEN}3. Valide o bundle:${NC}"
+echo ""
+echo "   databricks bundle validate -t dev"
+echo ""
+echo -e "${GREEN}4. Commit e push:${NC}"
+echo ""
+echo "   git add ."
+echo "   git commit -m 'Add: ${PROJECT_NAME}'"
+echo "   git push origin ${CURRENT_BRANCH}"
+echo ""
+echo -e "${CYAN}DICA: Consulte ${PROJECT_NAME}/INSTRUCOES.txt para o passo a passo completo${NC}"
+echo ""
+```
