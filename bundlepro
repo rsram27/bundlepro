@@ -157,8 +157,8 @@ check_and_create_branch() {
     FEATURE_BRANCH="feature/$1"
     CURRENT_BRANCH=$(git branch --show-current 2>/dev/null)
     
-    # Se estiver em master, criar a feature branch
-    if [ "$CURRENT_BRANCH" == "master" ] || [ "$CURRENT_BRANCH" == "main" ]; then
+    # Se estiver em main, criar a feature branch
+    if [ "$CURRENT_BRANCH" == "main" ] || [ "$CURRENT_BRANCH" == "master" ]; then
         echo -e "${CYAN}Branch atual: ${CURRENT_BRANCH}${NC}"
         
         # Verificar se a feature branch ja existe
@@ -178,11 +178,11 @@ check_and_create_branch() {
         if [ "$CURRENT_BRANCH" == "$FEATURE_BRANCH" ]; then
             echo -e "${GREEN}[OK] Ja esta na branch: ${FEATURE_BRANCH}${NC}"
         else
-            # Esta em outra feature branch, voltar para master e criar nova
+            # Esta em outra feature branch, voltar para main e criar nova
             echo -e "${YELLOW}[AVISO] Voce esta na branch: ${CURRENT_BRANCH}${NC}"
-            echo -e "${CYAN}Voltando para master...${NC}"
-            git checkout master
-            git pull origin master
+            echo -e "${CYAN}Voltando para main...${NC}"
+            git checkout main
+            git pull origin main
             
             # Verificar se a feature branch ja existe
             if git show-ref --verify --quiet "refs/heads/$FEATURE_BRANCH" 2>/dev/null; then
@@ -197,11 +197,11 @@ check_and_create_branch() {
             fi
         fi
     else
-        # Branch desconhecida, voltar para master
+        # Branch desconhecida, voltar para main
         echo -e "${YELLOW}[AVISO] Branch atual: ${CURRENT_BRANCH}${NC}"
-        echo -e "${CYAN}Voltando para master...${NC}"
-        git checkout master
-        git pull origin master
+        echo -e "${CYAN}Voltando para main...${NC}"
+        git checkout main
+        git pull origin main
         
         # Verificar se a feature branch ja existe
         if git show-ref --verify --quiet "refs/heads/$FEATURE_BRANCH" 2>/dev/null; then
@@ -388,14 +388,14 @@ INSTREOF
    
    Após validar e testar na branch feature/${PROJECT_NAME}:
    
-   git checkout master (ou main)
-   git pull origin master
+   git checkout main (ou master)
+   git pull origin main
    git merge feature/${PROJECT_NAME}
-   git push origin master
+   git push origin main
 
 8. DEPLOY PARA PRODUCAO
    
-   Apos merge em master, faça deploy em producao:
+   Apos merge em main, faça deploy em producao:
    
    databricks bundle deploy -t prod
 
@@ -409,7 +409,7 @@ databricks bundle validate -t dev
 # Deploy para DEV (durante desenvolvimento)
 databricks bundle deploy -t dev
 
-# Deploy para PROD (apos merge em master)
+# Deploy para PROD (apos merge em main)
 databricks bundle deploy -t prod
 
 INSTREOF
@@ -423,8 +423,8 @@ INSTREOF
     fi
 
     cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
-# Ver logs
-databricks bundle run -t dev notebook_job --verbose
+# Ver logs e debug
+databricks bundle run -t dev notebook_job --debug
 
 ========================================
 ARQUIVOS DO PROJETO

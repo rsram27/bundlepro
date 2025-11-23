@@ -120,12 +120,12 @@ O bundlepro utiliza um fluxo simples de desenvolvimento com feature branches:
    databricks bundle deploy -t dev
    ```
 
-4. **Fazer merge com master**
+4. **Fazer merge com main**
    ```bash
-   git checkout master
-   git pull origin master
+   git checkout main
+   git pull origin main
    git merge feature/meu-projeto
-   git push origin master
+   git push origin main
    ```
 
 5. **Deploy em Produção**
@@ -136,7 +136,7 @@ O bundlepro utiliza um fluxo simples de desenvolvimento com feature branches:
 ### Ambientes
 
 - **dev**: Workspace de desenvolvimento (usa feature branch para testes)
-- **prod**: Workspace de produção (usa master branch após merge)
+- **prod**: Workspace de produção (usa main branch após merge)
 
 ## Criação de Jobs com Serverless
 
@@ -170,6 +170,13 @@ databricks bundle deploy -t prod
 ```bash
 databricks bundle run -t dev notebook_job
 ```
+
+**Executar com debug (para ver logs detalhados):**
+```bash
+databricks bundle run -t dev notebook_job --debug
+```
+
+Nota: O comando original usa `--debug` (não `--verbose`). Use `--debug` para ver logs detalhados da execução.
 
 ### Configurar Cluster ID
 
