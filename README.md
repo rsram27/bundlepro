@@ -70,4 +70,4 @@ O script corrige automaticamente as permissões necessárias.
 
 ## Suporte
 
-Time CTI Data Engineering - Bundle Pro
+Bundle Pro
