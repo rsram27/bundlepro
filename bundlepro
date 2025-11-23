@@ -308,37 +308,26 @@ INSTREOF
    git commit -m 'Add: ${PROJECT_NAME}'
    git push origin ${ACTUAL_BRANCH}
 
-6. ABRIR PULL REQUEST
+6. DEPLOY PARA O WORKSPACE DE DESENVOLVIMENTO
    
-  Acesse: https://github.com/BundlePro/bundlepro-databricks
+   Faça deploy da feature branch para validar no workspace DEV:
    
-   Crie um Pull Request:
-   - De (compare): ${ACTUAL_BRANCH}
-   - Para (base): develop
-   
-   IMPORTANTE: O PR deve ser para 'develop', NAO para 'main'!
+   databricks bundle deploy -t dev
 
-7. APOS MERGE EM DEVELOP
+7. APOS VALIDACAO EM DEV
    
-   O CI/CD fara deploy automatico em DEV.
-   Verifique no workspace DEV se o notebook foi deployado.
-INSTREOF
-
-    if [ "$CREATE_JOB" == "true" ]; then
-        cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
-   Verifique em Workflows > Jobs se o job foi criado.
-INSTREOF
-    fi
-
-    cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
-
-8. PROMOVER PARA PRODUCAO
+   Após validar e testar na branch feature/${PROJECT_NAME}:
    
-   Apos validar em DEV, crie novo PR:
-   - De (compare): develop
-   - Para (base): main
+   git checkout master (ou main)
+   git pull origin master
+   git merge feature/${PROJECT_NAME}
+   git push origin master
+
+8. DEPLOY PARA PRODUCAO
    
-   Apos merge, o CI/CD fara deploy em PROD.
+   Apos merge em master, faça deploy em producao:
+   
+   databricks bundle deploy -t prod
 
 ========================================
 COMANDOS UTEIS
@@ -347,10 +336,10 @@ COMANDOS UTEIS
 # Validar bundle
 databricks bundle validate -t dev
 
-# Deploy para DEV
+# Deploy para DEV (durante desenvolvimento)
 databricks bundle deploy -t dev
 
-# Deploy para PROD (apos merge em main)
+# Deploy para PROD (apos merge em master)
 databricks bundle deploy -t prod
 
 INSTREOF

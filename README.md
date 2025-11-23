@@ -57,6 +57,47 @@ bash uninstall.sh
 - Databricks CLI instalado
 - Acesso ao repositorio BundlePro (chave SSH configurada)
 
+## Fluxo de Desenvolvimento
+
+O bundlepro utiliza um fluxo simples de desenvolvimento com feature branches:
+
+### Passos Básicos
+
+1. **Criar novo projeto**
+   ```bash
+   cd ~/bundlepro-databricks
+   bundlepro meu-projeto
+   ```
+
+2. **Desenvolver na feature branch**
+   - O projeto é criado automaticamente em uma branch `feature/meu-projeto`
+   - Estrutura criada: `meu-databricks/meu-projeto`
+   - Edite seu notebook e configurações
+
+3. **Validar e testar em DEV**
+   ```bash
+   databricks bundle validate -t dev
+   databricks bundle deploy -t dev
+   ```
+
+4. **Fazer merge com master**
+   ```bash
+   git checkout master
+   git pull origin master
+   git merge feature/meu-projeto
+   git push origin master
+   ```
+
+5. **Deploy em Produção**
+   ```bash
+   databricks bundle deploy -t prod
+   ```
+
+### Ambientes
+
+- **dev**: Workspace de desenvolvimento (usa feature branch para testes)
+- **prod**: Workspace de produção (usa master branch após merge)
+
 ## Criação de Jobs com Serverless
 
 O **bundlepro** cria automaticamente jobs utilizando **Databricks Serverless Compute** para execução otimizada e sem gerenciamento de clusters.
