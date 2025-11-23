@@ -6,12 +6,12 @@ Ferramenta CLI para criar projetos Databricks Asset Bundles padronizados.
 
 ### Passo 1: Clonar este repositorio
 ```bash
-git clone git@github.com:BundlePro/bundlepro-databricks-dab.git ~/bundlepro-databricks-dab
+git clone git@github.com:SEUGIT/seurepositorio.git ~/seurepositorio
 ```
 
 ### Passo 2: Instalar o bundlepro
 ```bash
-cd ~/bundlepro-databricks-dab
+cd ~/seurepositorio
 bash install.sh
 ```
 
@@ -28,14 +28,14 @@ Você será solicitado a fornecer:
 
 Essas informações serão salvas de forma segura em `~/.bundlepro/config` (somente para seu usuário).
 
-### Passo 4: Clonar o repositorio de projetos
+### Passo 4: Clonar o repositorio de projetos (seu repositorio de trabalho)
 ```bash
-git clone git@github.com:BundlePro/bundlepro-databricks.git ~/bundlepro-databricks
+git clone git@github.com:SEUGIT/seurepositorioprojetos.git ~/seurepositorioprojetos
 ```
 
 ## Atualizacao (Usuarios Existentes)
 ```bash
-cd ~/bundlepro-databricks-dab
+cd ~/seurepositorio
 git pull origin main
 bash install.sh
 ```
@@ -45,7 +45,7 @@ bash install.sh
 ## Uso
 ```bash
 # Entrar no repositorio de projetos
-cd ~/bundlepro-databricks
+cd ~/seurepositorioprojetos
 
 # Criar novo projeto
 bundlepro meu-projeto
@@ -87,7 +87,7 @@ Será solicitado novamente o endereço do workspace e token.
 
 ## Desinstalacao
 ```bash
-cd ~/bundlepro-databricks-dab
+cd ~/seurepositorio
 bash uninstall.sh
 ```
 
@@ -105,7 +105,7 @@ O bundlepro utiliza um fluxo simples de desenvolvimento com feature branches:
 
 1. **Criar novo projeto**
    ```bash
-   cd ~/bundlepro-databricks
+   cd ~/seurepositorioprojetos
    bundlepro meu-projeto
    ```
 

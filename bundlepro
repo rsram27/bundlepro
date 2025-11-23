@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 # Configuração
 CONFIG_DIR="$HOME/.bundlepro"
 CONFIG_FILE="$CONFIG_DIR/config"
-EXPECTED_DIR="$HOME/bundlepro-databricks"
+PROJECTS_DIR_NAME="seurepositorioprojetos"  # Customize com seu repositorio de projetos
 
 # Variaveis de controle
 CREATE_JOB=false
@@ -90,9 +90,9 @@ CONFIGEOF
     echo -e "${GREEN}[OK] Configuração salva em $CONFIG_FILE${NC}"
     echo ""
     echo -e "${CYAN}Próximas ações:${NC}"
-    echo "1. Clone o repositório: git clone git@github.com:BundlePro/bundlepro-databricks-dab.git ~/bundlepro-databricks-dab"
-    echo "2. Instale: cd ~/bundlepro-databricks-dab && bash install.sh"
-    echo "3. Clone o repositório de projetos: git clone git@github.com:BundlePro/bundlepro-databricks.git ~/bundlepro-databricks"
+    echo "1. Clone o repositório: git clone git@github.com:SEUGIT/seurepositorio.git ~/seurepositorio"
+    echo "2. Instale: cd ~/seurepositorio && bash install.sh"
+    echo "3. Clone o repositório de projetos: git clone git@github.com:SEUGIT/seurepositorioprojetos.git ~/seurepositorioprojetos"
 }
 
 # ============================================
@@ -121,7 +121,7 @@ show_usage() {
     echo "  bundlepro vendas-analytics"
     echo ""
     echo -e "${CYAN}Requisitos:${NC}"
-    echo "  - Executar dentro do diretorio: $EXPECTED_DIR"
+    echo "  - Executar dentro do seu repositorio de projetos (git clone)"
     echo "  - Executar 'bundlepro configure' antes de usar"
     echo ""
     echo -e "${CYAN}Comportamento:${NC}"
@@ -140,14 +140,12 @@ show_version() {
 check_directory() {
     CURRENT_DIR=$(pwd)
     
-    if [ "$CURRENT_DIR" != "$EXPECTED_DIR" ]; then
-        echo -e "${RED}[ERRO] Voce nao esta no diretorio correto!${NC}"
+    # Verificar se estamos em um repositorio git
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        echo -e "${RED}[ERRO] Nao esta em um repositorio Git!${NC}"
         echo ""
-        echo -e "${YELLOW}Diretorio atual:${NC}   $CURRENT_DIR"
-        echo -e "${YELLOW}Diretorio esperado:${NC} $EXPECTED_DIR"
-        echo ""
-        echo -e "${CYAN}Execute:${NC}"
-        echo "  cd $EXPECTED_DIR"
+        echo -e "${CYAN}Entre no seu repositorio de projetos e tente novamente:${NC}"
+        echo "  cd ~/seurepositorioprojetos"
         echo "  bundlepro $1"
         echo ""
         exit 1
@@ -491,7 +489,7 @@ if [ -z "$1" ]; then
 fi
 
 PROJECT_NAME="$1"
-PROJECT_DIR="$EXPECTED_DIR/$PROJECT_NAME"
+PROJECT_DIR="$(pwd)/$PROJECT_NAME"
 
 if [[ ! "$PROJECT_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
     echo -e "${RED}[ERRO] Nome do projeto invalido!${NC}"
