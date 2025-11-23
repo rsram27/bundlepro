@@ -13,7 +13,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Diretorio esperado
-EXPECTED_DIR="$HOME/bundlepro-agr-cti-databricks"
+EXPECTED_DIR="$HOME/bundlepro-databricks"
 
 # Variaveis de controle
 CREATE_JOB=false
@@ -325,7 +325,7 @@ INSTREOF
 
 6. ABRIR PULL REQUEST
    
-   Acesse: https://github.com/BundlePro/bundlepro-agr-cti-databricks
+  Acesse: https://github.com/BundlePro/bundlepro-databricks
    
    Crie um Pull Request:
    - De (compare): ${ACTUAL_BRANCH}

@@ -6,12 +6,12 @@ Ferramenta CLI para criar projetos Databricks Asset Bundles padronizados.
 
 ### Passo 1: Clonar este repositorio
 ```bash
-git clone git@github.com:BundlePro/bundlepro-agr-cti-databricks-dab.git ~/bundlepro-agr-cti-databricks-dab
+git clone git@github.com:BundlePro/bundlepro-databricks-dab.git ~/bundlepro-databricks-dab
 ```
 
 ### Passo 2: Instalar o bundlepro
 ```bash
-cd ~/bundlepro-agr-cti-databricks-dab
+cd ~/bundlepro-databricks-dab
 bash install.sh
 ```
 
@@ -19,12 +19,12 @@ bash install.sh
 
 ### Passo 3: Clonar o repositorio de projetos
 ```bash
-git clone git@github.com:BundlePro/bundlepro-agr-cti-databricks.git ~/bundlepro-agr-cti-databricks
+git clone git@github.com:BundlePro/bundlepro-databricks.git ~/bundlepro-databricks
 ```
 
 ## Atualizacao (Usuarios Existentes)
 ```bash
-cd ~/bundlepro-agr-cti-databricks-dab
+cd ~/bundlepro-databricks-dab
 git pull origin main
 bash install.sh
 ```
@@ -32,7 +32,7 @@ bash install.sh
 ## Uso
 ```bash
 # Entrar no repositorio de projetos
-cd ~/bundlepro-agr-cti-databricks
+cd ~/bundlepro-databricks
 
 # Criar novo projeto
 bundlepro meu-projeto
@@ -47,7 +47,7 @@ bundlepro --version        # Mostrar versao
 
 ## Desinstalacao
 ```bash
-cd ~/bundlepro-agr-cti-databricks-dab
+cd ~/bundlepro-databricks-dab
 bash uninstall.sh
 ```
 
