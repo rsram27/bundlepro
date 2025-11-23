@@ -171,20 +171,34 @@ databricks bundle deploy -t prod
 databricks bundle run -t dev notebook_job
 ```
 
-### Configurar Compute ID
+### Configurar Cluster ID
 
-Se criar um projeto com job, será necessário configurar o Compute ID do seu Serverless Compute:
+Se criar um projeto com job, será necessário configurar o ID do cluster que executará o job:
 
 ```bash
-databricks bundle deploy -t dev -var compute_id=YOUR_SERVERLESS_COMPUTE_ID
+databricks bundle deploy -t dev -var cluster_id=YOUR_CLUSTER_ID
 ```
 
 Ou edite o `databricks.yml` diretamente em cada target.
-      notebook_path: ../src/notebook.py
-    compute: ${var.compute_id}
-    spark_conf:
-      spark.databricks.delta.optimizeWrite.enabled: "true"
-      spark.databricks.delta.autoCompact.enabled: "true"
+
+**Para encontrar o Cluster ID:**
+```bash
+databricks clusters list
+```
+
+Copie o `cluster_id` da saída e use no comando acima.
+
+## Exemplo de Saída Validação
+
+Após as correções, o bundle valida sem erros:
+
+```bash
+$ databricks bundle validate -t dev
+Name: meu-projeto
+Target: dev
+Workspace:
+  User: seu-usuario@example.com
+  Path: /Workspace/Users/seu-usuario@example.com/.bundle/meu-projeto/dev
 ```
 
 ## Troubleshooting

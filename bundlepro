@@ -247,7 +247,7 @@ resources:
               catalog: ${var.catalog}
               environment: ${bundle.target}
           
-          compute_id: ${var.compute_id}
+          existing_cluster_id: ${var.cluster_id}
                     
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
@@ -544,24 +544,26 @@ include:
 variables:
   catalog:
     description: "Catalog name for the environment"
-  compute_id:
-    description: "Serverless Compute ID for job execution"
+  cluster_id:
+    description: "Cluster ID for job execution"
 
 targets:
   dev:
     mode: development
     default: true
-    root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
+    workspace:
+      root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
     variables:
       catalog: dev_catalog
-      compute_id: ""
+      cluster_id: ""
   
   prod:
     mode: production
-    root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
+    workspace:
+      root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
     variables:
       catalog: prd_catalog
-      compute_id: ""
+      cluster_id: ""
 YMLEOF
 else
     cat > "$PROJECT_DIR/databricks.yml" << YMLEOF
@@ -576,13 +578,15 @@ targets:
   dev:
     mode: development
     default: true
-    root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
+    workspace:
+      root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
     variables:
       catalog: dev_catalog
   
   prod:
     mode: production
-    root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
+    workspace:
+      root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
     variables:
       catalog: prd_catalog
 YMLEOF
