@@ -247,12 +247,8 @@ resources:
               catalog: ${var.catalog}
               environment: ${bundle.target}
           
-          compute: ${var.compute_id}
-          
-          spark_conf:
-            spark.databricks.delta.optimizeWrite.enabled: "true"
-            spark.databricks.delta.autoCompact.enabled: "true"
-            
+          compute_id: ${var.compute_id}
+                    
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
         timezone_id: "America/Sao_Paulo"
@@ -550,27 +546,22 @@ variables:
     description: "Catalog name for the environment"
   compute_id:
     description: "Serverless Compute ID for job execution"
-    default: ""
 
 targets:
   dev:
     mode: development
     default: true
-    workspace:
-      host: \${DATABRICKS_HOST}
-      token: \${DATABRICKS_TOKEN}
-      root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
+    root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
     variables:
       catalog: dev_catalog
+      compute_id: ""
   
   prod:
     mode: production
-    workspace:
-      host: \${DATABRICKS_HOST}
-      token: \${DATABRICKS_TOKEN}
-      root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
+    root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
     variables:
       catalog: prd_catalog
+      compute_id: ""
 YMLEOF
 else
     cat > "$PROJECT_DIR/databricks.yml" << YMLEOF
@@ -580,27 +571,18 @@ bundle:
 variables:
   catalog:
     description: "Catalog name for the environment"
-  compute_id:
-    description: "Serverless Compute ID for job execution"
-    default: ""
 
 targets:
   dev:
     mode: development
     default: true
-    workspace:
-      host: \${DATABRICKS_HOST}
-      token: \${DATABRICKS_TOKEN}
-      root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
+    root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
     variables:
       catalog: dev_catalog
   
   prod:
     mode: production
-    workspace:
-      host: \${DATABRICKS_HOST}
-      token: \${DATABRICKS_TOKEN}
-      root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
+    root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
     variables:
       catalog: prd_catalog
 YMLEOF

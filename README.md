@@ -147,32 +147,39 @@ O **bundlepro** cria automaticamente jobs utilizando **Databricks Serverless Com
 Ao criar um novo projeto com a opção de job (`bundlepro meu-projeto`), o arquivo `resources/jobs.yml` é gerado com:
 
 - **Compute Serverless**: Referenciado via variável `${var.compute_id}`
-- **Otimizações Delta**: Configuradas para melhor performance
-- **Schedule**: Job agendado para executar diariamente (6:00 AM - timezone São Paulo)
-- **Notificações**: Alertas de falha por email
+### Deploying e Validando Bundle
+
+**Validar bundle:**
+```bash
+cd ~/seurepositorioprojetos/meu-projeto
+databricks bundle validate -t dev
+```
+
+**Deploy para dev:**
+```bash
+# Defina as variáveis de ambiente (já configuradas via 'bundlepro configure')
+databricks bundle deploy -t dev
+```
+
+**Deploy para prod:**
+```bash
+databricks bundle deploy -t prod
+```
+
+**Executar job:**
+```bash
+databricks bundle run -t dev notebook_job
+```
 
 ### Configurar Compute ID
 
-Edite o arquivo `databricks.yml` e adicione o ID do seu compute serverless:
-
-```yaml
-variables:
-  compute_id:
-    default: "YOUR_SERVERLESS_COMPUTE_ID"
-```
-
-Ou passe via CLI:
+Se criar um projeto com job, será necessário configurar o Compute ID do seu Serverless Compute:
 
 ```bash
 databricks bundle deploy -t dev -var compute_id=YOUR_SERVERLESS_COMPUTE_ID
 ```
 
-### Exemplo de Job Criado
-
-```yaml
-tasks:
-  - task_key: run_notebook
-    notebook_task:
+Ou edite o `databricks.yml` diretamente em cada target.
       notebook_path: ../src/notebook.py
     compute: ${var.compute_id}
     spark_conf:
