@@ -173,26 +173,11 @@ resources:
               catalog: ${var.catalog}
               environment: ${bundle.target}
           
-          new_cluster:
-            spark_version: "14.3.x-scala2.12"
-            node_type_id: "m5d.large"
-            driver_node_type_id: "m5d.large"
-            num_workers: 1
-            enable_elastic_disk: true
-            data_security_mode: "USER_ISOLATION"
-            aws_attributes:
-              first_on_demand: 1
-              availability: "SPOT_WITH_FALLBACK"
-              zone_id: "auto"
-              spot_bid_price_percent: 100
-            spark_conf:
-              spark.databricks.delta.optimizeWrite.enabled: "true"
-              spark.databricks.delta.autoCompact.enabled: "true"
-            spark_env_vars:
-              PYSPARK_PYTHON: "/databricks/python3/bin/python3"
-            custom_tags:
-              Environment: ${bundle.target}
-              Project: ${bundle.name}
+          compute: ${var.compute_id}
+          
+          spark_conf:
+            spark.databricks.delta.optimizeWrite.enabled: "true"
+            spark.databricks.delta.autoCompact.enabled: "true"
             
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
@@ -488,6 +473,9 @@ include:
 variables:
   catalog:
     description: "Catalog name for the environment"
+  compute_id:
+    description: "Serverless Compute ID for job execution"
+    default: ""
 
 targets:
   dev:
@@ -527,6 +515,9 @@ bundle:
 variables:
   catalog:
     description: "Catalog name for the environment"
+  compute_id:
+    description: "Serverless Compute ID for job execution"
+    default: ""
 
 targets:
   dev:
