@@ -17,7 +17,18 @@ bash install.sh
 
 **Nota**: O script `install.sh` corrige automaticamente as permissões necessárias.
 
-### Passo 3: Clonar o repositorio de projetos
+### Passo 3: Configurar workspace e autenticação
+```bash
+bundlepro configure
+```
+
+Você será solicitado a fornecer:
+- **Endereço do Workspace**: URL do seu workspace Databricks
+- **Token de Autenticação**: Token gerado em Settings > User Settings > Access Tokens
+
+Essas informações serão salvas de forma segura em `~/.bundlepro/config` (somente para seu usuário).
+
+### Passo 4: Clonar o repositorio de projetos
 ```bash
 git clone git@github.com:BundlePro/bundlepro-databricks.git ~/bundlepro-databricks
 ```
@@ -28,6 +39,8 @@ cd ~/bundlepro-databricks-dab
 git pull origin main
 bash install.sh
 ```
+
+**Nota**: Seus dados de configuração (workspace e token) não são afetados por atualizações.
 
 ## Uso
 ```bash
@@ -41,9 +54,36 @@ bundlepro meu-projeto
 ## Comandos Disponiveis
 ```bash
 bundlepro <nome-projeto>   # Criar novo projeto
+bundlepro configure        # Configurar workspace e autenticação
 bundlepro --help           # Mostrar ajuda
 bundlepro --version        # Mostrar versao
 ```
+
+## Gerenciamento de Configuração
+
+### Arquivo de Configuração
+
+Após executar `bundlepro configure`, seus dados de conexão são armazenados em:
+
+```
+~/.bundlepro/config
+```
+
+Este arquivo:
+- Contém endereço do workspace e token de autenticação
+- Tem permissões restritas (readable apenas para o usuário)
+- **NÃO é afetado** por atualizações ou pull do repositório
+- Pode ser atualizado a qualquer momento com `bundlepro configure`
+
+### Atualizar Configuração
+
+Para mudar workspace, token ou qualquer configuração:
+
+```bash
+bundlepro configure
+```
+
+Será solicitado novamente o endereço do workspace e token.
 
 ## Desinstalacao
 ```bash

@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # ============================================
 # Bundle Pro - bundlepro
 # Versao: 1.2.0
@@ -12,52 +13,139 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Diretorio esperado
+# Configuração
+CONFIG_DIR="$HOME/.bundlepro"
+CONFIG_FILE="$CONFIG_DIR/config"
 EXPECTED_DIR="$HOME/bundlepro-databricks"
 
 # Variaveis de controle
 CREATE_JOB=false
-# Sucesso
-echo ""
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}Projeto criado com sucesso!${NC}"
-echo -e "${GREEN}========================================${NC}"
-echo ""
-echo -e "${BLUE}Projeto:${NC}     ${PROJECT_NAME}"
-echo -e "${BLUE}Localizacao:${NC} ${PROJECT_DIR}"
-echo -e "${BLUE}Branch:${NC}      ${CURRENT_BRANCH}"
-echo -e "${BLUE}Job criado:${NC}  $([ "$CREATE_JOB" == "true" ] && echo "Sim" || echo "Nao")"
-echo ""
 
-# PROXIMOS PASSOS
-echo -e "${YELLOW}========================================${NC}"
-echo -e "${YELLOW}PROXIMOS PASSOS${NC}"
-echo -e "${YELLOW}========================================${NC}"
-echo ""
-echo -e "${GREEN}1. Entre no diretorio do projeto:${NC}"
-echo ""
-echo -e "${CYAN}   cd ${PROJECT_NAME}${NC}"
-echo ""
-echo -e "${GREEN}2. Edite os arquivos conforme necessario:${NC}"
-echo ""
-echo "   nano src/notebook.py"
-if [ "$CREATE_JOB" == "true" ]; then
-echo "   nano resources/jobs.yml"
-fi
-echo "   nano databricks.yml"
-echo ""
-echo -e "${GREEN}3. Valide o bundle:${NC}"
-echo ""
-echo "   databricks bundle validate -t dev"
-echo ""
-echo -e "${GREEN}4. Commit e push:${NC}"
-echo ""
-echo "   git add ."
-echo "   git commit -m 'Add: ${PROJECT_NAME}'"
-echo "   git push origin ${CURRENT_BRANCH}"
-echo ""
-echo -e "${CYAN}DICA: Consulte ${PROJECT_NAME}/INSTRUCOES.txt para o passo a passo completo${NC}"
-echo ""
+# ============================================
+# FUNCOES DE CONFIGURACAO
+# ============================================
+
+# Verificar e carregar configuração
+load_config() {
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo -e "${RED}[ERRO] Configuração não encontrada!${NC}"
+        echo ""
+        echo -e "${CYAN}Execute 'bundlepro configure' para configurar o workspace e autenticação.${NC}"
+        exit 1
+    fi
+    source "$CONFIG_FILE"
+    
+    if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
+        echo -e "${RED}[ERRO] Configuração incompleta!${NC}"
+        echo ""
+        echo -e "${CYAN}Execute 'bundlepro configure' para atualizar as configurações.${NC}"
+        exit 1
+    fi
+}
+
+# Configurar workspace e autenticação
+configure_bundlepro() {
+    echo -e "${GREEN}========================================${NC}"
+    echo -e "${GREEN}Configuração do Bundle Pro${NC}"
+    echo -e "${GREEN}========================================${NC}"
+    echo ""
+    
+    mkdir -p "$CONFIG_DIR"
+    
+    # Solicitar Workspace
+    echo -e "${CYAN}Endereço do Workspace Databricks${NC}"
+    echo "Exemplo: https://dbc-12345678-9abc.cloud.databricks.com"
+    read -p "Host: " DATABRICKS_HOST
+    
+    if [ -z "$DATABRICKS_HOST" ]; then
+        echo -e "${RED}[ERRO] Host não pode estar vazio!${NC}"
+        exit 1
+    fi
+    
+    # Solicitar Token
+    echo ""
+    echo -e "${CYAN}Token de Autenticação Databricks${NC}"
+    echo "Gere em: Settings > User Settings > Access Tokens"
+    read -sp "Token: " DATABRICKS_TOKEN
+    echo ""
+    
+    if [ -z "$DATABRICKS_TOKEN" ]; then
+        echo -e "${RED}[ERRO] Token não pode estar vazio!${NC}"
+        exit 1
+    fi
+    
+    # Salvar configuração
+    cat > "$CONFIG_FILE" << CONFIGEOF
+#!/bin/bash
+# Bundle Pro Configuration
+# Generated: $(date)
+
+export DATABRICKS_HOST="$DATABRICKS_HOST"
+export DATABRICKS_TOKEN="$DATABRICKS_TOKEN"
+CONFIGEOF
+    
+    chmod 600 "$CONFIG_FILE"
+    
+    echo ""
+    echo -e "${GREEN}[OK] Configuração salva em $CONFIG_FILE${NC}"
+    echo ""
+    echo -e "${CYAN}Próximas ações:${NC}"
+    echo "1. Clone o repositório: git clone git@github.com:BundlePro/bundlepro-databricks-dab.git ~/bundlepro-databricks-dab"
+    echo "2. Instale: cd ~/bundlepro-databricks-dab && bash install.sh"
+    echo "3. Clone o repositório de projetos: git clone git@github.com:BundlePro/bundlepro-databricks.git ~/bundlepro-databricks"
+}
+
+# ============================================
+# FUNCOES DE PROJETO
+# ============================================
+
+# Banner
+show_banner() {
+    echo -e "${GREEN}"
+    echo "========================================"
+    echo "  Bundle Pro - DAB Bundle Setup"
+    echo "========================================"
+    echo -e "${NC}"
+}
+
+# Uso
+show_usage() {
+    echo -e "${CYAN}Uso:${NC}"
+    echo "  bundlepro <nome-do-projeto>"
+    echo "  bundlepro configure"
+    echo "  bundlepro --version"
+    echo "  bundlepro --help"
+    echo ""
+    echo -e "${CYAN}Exemplos:${NC}"
+    echo "  bundlepro sap-data-pipeline"
+    echo "  bundlepro vendas-analytics"
+    echo ""
+    echo -e "${CYAN}Requisitos:${NC}"
+    echo "  - Executar dentro do diretorio: $EXPECTED_DIR"
+    echo "  - Executar 'bundlepro configure' antes de usar"
+    echo ""
+    echo -e "${CYAN}Comportamento:${NC}"
+    echo "  - Cria automaticamente a branch: feature/<nome-do-projeto>"
+    echo "  - Cada projeto deve ter sua propria branch"
+    echo ""
+}
+
+# Versao
+show_version() {
+    echo "bundlepro versao 1.2.0"
+    echo "Bundle Pro - Data Engineering"
+}
+
+# Verificar diretorio atual
+check_directory() {
+    CURRENT_DIR=$(pwd)
+    
+    if [ "$CURRENT_DIR" != "$EXPECTED_DIR" ]; then
+        echo -e "${RED}[ERRO] Voce nao esta no diretorio correto!${NC}"
+        echo ""
+        echo -e "${YELLOW}Diretorio atual:${NC}   $CURRENT_DIR"
+        echo -e "${YELLOW}Diretorio esperado:${NC} $EXPECTED_DIR"
+        echo ""
         echo -e "${CYAN}Execute:${NC}"
         echo "  cd $EXPECTED_DIR"
         echo "  bundlepro $1"
@@ -71,21 +159,9 @@ check_and_create_branch() {
     FEATURE_BRANCH="feature/$1"
     CURRENT_BRANCH=$(git branch --show-current 2>/dev/null)
     
-    # Bloquear main
-    if [ "$CURRENT_BRANCH" == "main" ]; then
-        echo -e "${RED}[ERRO] Voce esta na branch 'main'!${NC}"
-        echo ""
-        echo -e "${YELLOW}Nao e permitido criar projetos diretamente na main.${NC}"
-        echo ""
-        echo -e "${CYAN}Mudando para develop...${NC}"
-        git checkout develop
-        git pull origin develop
-        CURRENT_BRANCH="develop"
-    fi
-
-    # Se estiver em develop, criar a feature branch
-    if [ "$CURRENT_BRANCH" == "develop" ]; then
-        echo -e "${CYAN}Branch atual: develop${NC}"
+    # Se estiver em master, criar a feature branch
+    if [ "$CURRENT_BRANCH" == "master" ] || [ "$CURRENT_BRANCH" == "main" ]; then
+        echo -e "${CYAN}Branch atual: ${CURRENT_BRANCH}${NC}"
         
         # Verificar se a feature branch ja existe
         if git show-ref --verify --quiet "refs/heads/$FEATURE_BRANCH" 2>/dev/null; then
@@ -104,11 +180,11 @@ check_and_create_branch() {
         if [ "$CURRENT_BRANCH" == "$FEATURE_BRANCH" ]; then
             echo -e "${GREEN}[OK] Ja esta na branch: ${FEATURE_BRANCH}${NC}"
         else
-            # Esta em outra feature branch, voltar para develop e criar nova
+            # Esta em outra feature branch, voltar para master e criar nova
             echo -e "${YELLOW}[AVISO] Voce esta na branch: ${CURRENT_BRANCH}${NC}"
-            echo -e "${CYAN}Voltando para develop...${NC}"
-            git checkout develop
-            git pull origin develop
+            echo -e "${CYAN}Voltando para master...${NC}"
+            git checkout master
+            git pull origin master
             
             # Verificar se a feature branch ja existe
             if git show-ref --verify --quiet "refs/heads/$FEATURE_BRANCH" 2>/dev/null; then
@@ -123,11 +199,11 @@ check_and_create_branch() {
             fi
         fi
     else
-        # Branch desconhecida
+        # Branch desconhecida, voltar para master
         echo -e "${YELLOW}[AVISO] Branch atual: ${CURRENT_BRANCH}${NC}"
-        echo -e "${CYAN}Voltando para develop...${NC}"
-        git checkout develop
-        git pull origin develop
+        echo -e "${CYAN}Voltando para master...${NC}"
+        git checkout master
+        git pull origin master
         
         # Verificar se a feature branch ja existe
         if git show-ref --verify --quiet "refs/heads/$FEATURE_BRANCH" 2>/dev/null; then
@@ -244,7 +320,6 @@ READMEEOF
 
 # Criar arquivo de instrucoes
 create_instructions_file() {
-    # Capturar a branch ATUAL apos a mudanca
     local ACTUAL_BRANCH=$(git branch --show-current 2>/dev/null)
     
     echo -e "  ${CYAN}[CRIANDO]${NC} INSTRUCOES.txt"
@@ -289,9 +364,10 @@ INSTREOF
    
    databricks bundle validate -t dev
 
-4. TESTAR LOCALMENTE (OPCIONAL)
+4. TESTAR EM DEV
    
    databricks bundle deploy -t dev
+
 INSTREOF
 
     if [ "$CREATE_JOB" == "true" ]; then
@@ -390,6 +466,11 @@ INSTREOF
 # ============================================
 
 # Opcoes especiais
+if [ "$1" == "configure" ]; then
+    configure_bundlepro
+    exit 0
+fi
+
 if [ "$1" == "--version" ] || [ "$1" == "-v" ]; then
     show_version
     exit 0
@@ -419,6 +500,13 @@ if [[ ! "$PROJECT_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
 fi
 
 show_banner
+
+# Carregar configuração
+load_config
+
+# Exportar variaveis para bundle
+export DATABRICKS_HOST
+export DATABRICKS_TOKEN
 
 # Verificar diretorio
 check_directory "$PROJECT_NAME"
@@ -471,30 +559,20 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://dbc-09564139-2394.cloud.databricks.com
+      host: \${DATABRICKS_HOST}
+      token: \${DATABRICKS_TOKEN}
       root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
     variables:
       catalog: dev_catalog
   
-  dev-ci:
-    mode: production
-    workspace:
-      host: https://dbc-09564139-2394.cloud.databricks.com
-      root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/dev
-    variables:
-      catalog: dev_catalog
-    run_as:
-      service_principal_name: 6d2042fe-fa7b-4712-93db-15ca91c2eff9
-
   prod:
     mode: production
     workspace:
-      host: https://dbc-d5989d4c-48e0.cloud.databricks.com
+      host: \${DATABRICKS_HOST}
+      token: \${DATABRICKS_TOKEN}
       root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
     variables:
       catalog: prd_catalog
-    run_as:
-      service_principal_name: SEU_CLIENT_ID_PROD_AQUI
 YMLEOF
 else
     cat > "$PROJECT_DIR/databricks.yml" << YMLEOF
@@ -513,30 +591,20 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://dbc-09564139-2394.cloud.databricks.com
+      host: \${DATABRICKS_HOST}
+      token: \${DATABRICKS_TOKEN}
       root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
     variables:
       catalog: dev_catalog
   
-  dev-ci:
-    mode: production
-    workspace:
-      host: https://dbc-09564139-2394.cloud.databricks.com
-      root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/dev
-    variables:
-      catalog: dev_catalog
-    run_as:
-      service_principal_name: 6d2042fe-fa7b-4712-93db-15ca91c2eff9
-
   prod:
     mode: production
     workspace:
-      host: https://dbc-d5989d4c-48e0.cloud.databricks.com
+      host: \${DATABRICKS_HOST}
+      token: \${DATABRICKS_TOKEN}
       root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
     variables:
       catalog: prd_catalog
-    run_as:
-      service_principal_name: SEU_CLIENT_ID_PROD_AQUI
 YMLEOF
 fi
 
@@ -614,7 +682,7 @@ GITIGNOREEOF
 # Criar README.md
 create_readme
 
-# Criar arquivo de instrucoes (DEPOIS de criar a branch)
+# Criar arquivo de instrucoes
 create_instructions_file
 
 # Obter branch atual para o resumo final
@@ -661,4 +729,3 @@ echo "   git push origin ${CURRENT_BRANCH}"
 echo ""
 echo -e "${CYAN}DICA: Consulte ${PROJECT_NAME}/INSTRUCOES.txt para o passo a passo completo${NC}"
 echo ""
-```
