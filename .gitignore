@@ -1,0 +1,16 @@
+# Configurações locais
+.bundlepro/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporários
+*.tmp
+*.swp
+*~

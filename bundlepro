@@ -256,7 +256,7 @@ resources:
       
       email_notifications:
         on_failure:
-          - data-eng@bundlepro.com.br
+          - seu-email@exemplo.com.br
       
       max_concurrent_runs: 1
       timeout_seconds: 7200
