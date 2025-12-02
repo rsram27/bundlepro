@@ -1,5 +1,7 @@
 # Bundle Pro - bundlepro
 
+**Versão**: 1.2.0
+
 Ferramenta CLI para criar projetos Databricks Asset Bundles padronizados.
 
 ## Instalacao (Novos Usuarios)
@@ -36,7 +38,7 @@ git clone git@github.com:SEUGIT/seurepositorioprojetos.git ~/seurepositorioproje
 ## Atualizacao (Usuarios Existentes)
 ```bash
 cd ~/seurepositorio
-git pull origin main
+git pull origin master
 bash install.sh
 ```
 
@@ -120,12 +122,12 @@ O bundlepro utiliza um fluxo simples de desenvolvimento com feature branches:
    databricks bundle deploy -t dev
    ```
 
-4. **Fazer merge com main**
+4. **Fazer merge com master**
    ```bash
-   git checkout main
-   git pull origin main
+   git checkout master
+   git pull origin master
    git merge feature/meu-projeto
-   git push origin main
+   git push origin master
    ```
 
 5. **Deploy em Produção**
@@ -136,18 +138,22 @@ O bundlepro utiliza um fluxo simples de desenvolvimento com feature branches:
 ### Ambientes
 
 - **dev**: Workspace de desenvolvimento (usa feature branch para testes)
-- **prod**: Workspace de produção (usa main branch após merge)
+- **prod**: Workspace de produção (usa master branch após merge)
 
-## Criação de Jobs com Serverless
+## Criação de Jobs
 
-O **bundlepro** cria automaticamente jobs utilizando **Databricks Serverless Compute** para execução otimizada e sem gerenciamento de clusters.
+O **bundlepro** pode criar automaticamente jobs para execução de notebooks no Databricks.
 
 ### Configuração de Jobs
 
-Ao criar um novo projeto com a opção de job (`bundlepro meu-projeto`), o arquivo `resources/jobs.yml` é gerado com:
+Ao criar um novo projeto, você será perguntado se deseja criar um job. Se optar por criar, o arquivo `resources/jobs.yml` será gerado com:
 
-- **Compute Serverless**: Referenciado via variável `${var.compute_id}`
-### Deploying e Validando Bundle
+- **Configuração de schedule**: Agendamento usando expressão Cron (padrão: diário às 6h, pausado)
+- **Cluster**: Referencia um cluster existente via variável `${var.cluster_id}`
+- **Notificações**: Configurado para enviar email em caso de falha
+- **Timeout**: 2 horas de tempo máximo de execução
+
+## Deploy e Validação de Bundles
 
 **Validar bundle:**
 ```bash
@@ -176,24 +182,35 @@ databricks bundle run -t dev notebook_job
 databricks bundle run -t dev notebook_job --debug
 ```
 
-Nota: O comando original usa `--debug` (não `--verbose`). Use `--debug` para ver logs detalhados da execução.
+### Configurar Cluster ID para Jobs
 
-### Configurar Cluster ID
+**Importante**: Se você criou um projeto com job, é necessário configurar o ID do cluster que executará o job antes do primeiro deploy.
 
-Se criar um projeto com job, será necessário configurar o ID do cluster que executará o job:
-
+**Opção 1: Via linha de comando**
 ```bash
 databricks bundle deploy -t dev -var cluster_id=YOUR_CLUSTER_ID
 ```
 
-Ou edite o `databricks.yml` diretamente em cada target.
+**Opção 2: Editar databricks.yml** (recomendado para configuração permanente)
 
-**Para encontrar o Cluster ID:**
+Edite o arquivo `databricks.yml` do seu projeto e defina o `cluster_id` em cada target:
+
+```yaml
+targets:
+  dev:
+    variables:
+      cluster_id: "1234-567890-abc123"
+  prod:
+    variables:
+      cluster_id: "9876-543210-xyz789"
+```
+
+**Como encontrar o Cluster ID:**
 ```bash
 databricks clusters list
 ```
 
-Copie o `cluster_id` da saída e use no comando acima.
+Copie o valor da coluna `ID` do cluster desejado.
 
 ## Exemplo de Saída Validação
 
