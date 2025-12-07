@@ -156,11 +156,42 @@ check_directory() {
 check_and_create_branch() {
     FEATURE_BRANCH="feature/$1"
     CURRENT_BRANCH=$(git branch --show-current 2>/dev/null)
-    
-    # Se estiver em main, criar a feature branch
+
+    # Verificar se a branch develop existe
+    if ! git show-ref --verify --quiet "refs/heads/develop" 2>/dev/null; then
+        echo -e "${YELLOW}[AVISO] A branch 'develop' não existe.${NC}"
+        echo -e "${CYAN}Criando branch 'develop'...${NC}"
+
+        # Criar develop a partir de main/master
+        if git show-ref --verify --quiet "refs/heads/main" 2>/dev/null; then
+            git checkout main
+            git checkout -b develop
+        elif git show-ref --verify --quiet "refs/heads/master" 2>/dev/null; then
+            git checkout master
+            git checkout -b develop
+        else
+            echo -e "${RED}[ERRO] Não foi possível encontrar branch main ou master!${NC}"
+            exit 1
+        fi
+
+        echo -e "${GREEN}[OK] Branch 'develop' criada${NC}"
+        echo -e "${CYAN}Envie para o repositório remoto:${NC} git push origin develop"
+        echo ""
+    fi
+
+    # Se estiver em main/master, avisar para usar develop
     if [ "$CURRENT_BRANCH" == "main" ] || [ "$CURRENT_BRANCH" == "master" ]; then
+        echo -e "${YELLOW}[AVISO] Você está na branch ${CURRENT_BRANCH}${NC}"
+        echo -e "${CYAN}Mudando para develop para criar a feature...${NC}"
+        git checkout develop
+        git pull origin develop 2>/dev/null || true
+        CURRENT_BRANCH="develop"
+    fi
+
+    # Se estiver em develop, criar a feature branch
+    if [ "$CURRENT_BRANCH" == "develop" ]; then
         echo -e "${CYAN}Branch atual: ${CURRENT_BRANCH}${NC}"
-        
+
         # Verificar se a feature branch ja existe
         if git show-ref --verify --quiet "refs/heads/$FEATURE_BRANCH" 2>/dev/null; then
             echo -e "${YELLOW}[AVISO] A branch '${FEATURE_BRANCH}' ja existe.${NC}"
@@ -168,7 +199,7 @@ check_and_create_branch() {
             git checkout "$FEATURE_BRANCH"
             echo -e "${GREEN}[OK] Usando branch: ${FEATURE_BRANCH}${NC}"
         else
-            echo -e "${CYAN}Criando branch: ${FEATURE_BRANCH}...${NC}"
+            echo -e "${CYAN}Criando branch: ${FEATURE_BRANCH} a partir de develop...${NC}"
             git checkout -b "$FEATURE_BRANCH"
             echo -e "${GREEN}[OK] Branch criada: ${FEATURE_BRANCH}${NC}"
         fi
@@ -178,12 +209,12 @@ check_and_create_branch() {
         if [ "$CURRENT_BRANCH" == "$FEATURE_BRANCH" ]; then
             echo -e "${GREEN}[OK] Ja esta na branch: ${FEATURE_BRANCH}${NC}"
         else
-            # Esta em outra feature branch, voltar para main e criar nova
+            # Esta em outra feature branch, voltar para develop e criar nova
             echo -e "${YELLOW}[AVISO] Voce esta na branch: ${CURRENT_BRANCH}${NC}"
-            echo -e "${CYAN}Voltando para main...${NC}"
-            git checkout main
-            git pull origin main
-            
+            echo -e "${CYAN}Voltando para develop...${NC}"
+            git checkout develop
+            git pull origin develop 2>/dev/null || true
+
             # Verificar se a feature branch ja existe
             if git show-ref --verify --quiet "refs/heads/$FEATURE_BRANCH" 2>/dev/null; then
                 echo -e "${YELLOW}[AVISO] A branch '${FEATURE_BRANCH}' ja existe.${NC}"
@@ -197,12 +228,12 @@ check_and_create_branch() {
             fi
         fi
     else
-        # Branch desconhecida, voltar para main
+        # Branch desconhecida, voltar para develop
         echo -e "${YELLOW}[AVISO] Branch atual: ${CURRENT_BRANCH}${NC}"
-        echo -e "${CYAN}Voltando para main...${NC}"
-        git checkout main
-        git pull origin main
-        
+        echo -e "${CYAN}Voltando para develop...${NC}"
+        git checkout develop
+        git pull origin develop 2>/dev/null || true
+
         # Verificar se a feature branch ja existe
         if git show-ref --verify --quiet "refs/heads/$FEATURE_BRANCH" 2>/dev/null; then
             echo -e "${YELLOW}[AVISO] A branch '${FEATURE_BRANCH}' ja existe.${NC}"
@@ -215,7 +246,7 @@ check_and_create_branch() {
             echo -e "${GREEN}[OK] Branch criada: ${FEATURE_BRANCH}${NC}"
         fi
     fi
-    
+
     echo ""
 }
 
@@ -384,19 +415,34 @@ INSTREOF
    
    databricks bundle deploy -t dev
 
-7. APOS VALIDACAO EM DEV
-   
-   Após validar e testar na branch feature/${PROJECT_NAME}:
-   
-   git checkout main (ou master)
-   git pull origin main
+7. MERGE COM DEVELOP (OBRIGATÓRIO)
+
+   Após validar na feature, faça merge com develop:
+
+   git checkout develop
+   git pull origin develop
    git merge feature/${PROJECT_NAME}
+   git push origin develop
+
+8. TESTAR EM DEVELOP
+
+   Valide novamente no ambiente de desenvolvimento:
+
+   databricks bundle deploy -t dev
+
+9. MERGE COM MAIN (PRODUÇÃO)
+
+   Após validação em develop, faça merge com main:
+
+   git checkout main
+   git pull origin main
+   git merge develop
    git push origin main
 
-8. DEPLOY PARA PRODUCAO
-   
+10. DEPLOY PARA PRODUCAO
+
    Apos merge em main, faça deploy em producao:
-   
+
    databricks bundle deploy -t prod
 
 ========================================

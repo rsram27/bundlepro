@@ -16,6 +16,7 @@ echo ""
 # SCRIPT_DIR and install path
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_PATH="/usr/local/bin/bundlepro"
+HOOKS_INSTALL_PATH="/usr/local/share/bundlepro"
 
 # Verificar se o arquivo bundlepro existe
 if [ ! -f "$SCRIPT_DIR/bundlepro" ]; then
@@ -23,10 +24,21 @@ if [ ! -f "$SCRIPT_DIR/bundlepro" ]; then
     exit 1
 fi
 
-# Instalar
+# Instalar bundlepro
 echo -e "${CYAN}Copiando bundlepro para $INSTALL_PATH...${NC}"
 sudo cp "$SCRIPT_DIR/bundlepro" "$INSTALL_PATH"
 sudo chmod +x "$INSTALL_PATH"
+
+# Instalar hooks e scripts auxiliares
+echo -e "${CYAN}Instalando hooks e scripts auxiliares...${NC}"
+sudo mkdir -p "$HOOKS_INSTALL_PATH"
+if [ -d "$SCRIPT_DIR/.git-hooks" ]; then
+    sudo cp -r "$SCRIPT_DIR/.git-hooks" "$HOOKS_INSTALL_PATH/"
+fi
+if [ -f "$SCRIPT_DIR/install-hooks.sh" ]; then
+    sudo cp "$SCRIPT_DIR/install-hooks.sh" "$HOOKS_INSTALL_PATH/"
+    sudo chmod +x "$HOOKS_INSTALL_PATH/install-hooks.sh"
+fi
 
 # Verificar instalacao
 if [ -f "$INSTALL_PATH" ]; then
@@ -49,11 +61,17 @@ if [ -f "$INSTALL_PATH" ]; then
     echo "  1. Clone o repositorio de projetos:"
     echo "     git clone git@github.com:SEUGIT/seurepositorioprojetos.git ~/seurepositorioprojetos"
     echo ""
-    echo "  2. Entre no diretorio:"
+    echo "  2. Entre no diretorio e instale os hooks de validacao:"
     echo "     cd ~/seurepositorioprojetos"
+    echo "     bash /usr/local/share/bundlepro/install-hooks.sh"
     echo ""
     echo "  3. Crie seu projeto:"
     echo "     bundlepro meu-projeto"
+    echo ""
+    echo -e "${YELLOW}IMPORTANTE:${NC} Os hooks de validacao garantem que:"
+    echo "  - Apenas branches feature/* podem ser mergeadas"
+    echo "  - feature/* deve ser mergeada com develop primeiro"
+    echo "  - develop deve ser mergeada com main para producao"
     echo ""
 else
     echo -e "${RED}[ERRO] Falha na instalacao!${NC}"

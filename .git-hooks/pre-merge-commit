@@ -1,0 +1,101 @@
+#!/bin/bash
+
+# ============================================
+# Bundle Pro - Git Hook: Pre-Merge Validation
+# ============================================
+# Este hook valida o fluxo de merge entre branches:
+# 1. feature/* -> develop (permitido)
+# 2. develop -> main (permitido)
+# 3. feature/* -> main (bloqueado - deve passar por develop primeiro)
+# 4. outras branches -> develop/main (bloqueado)
+# ============================================
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Obter a branch atual
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null)
+
+# Detectar se é um merge commit
+if [ -f .git/MERGE_HEAD ]; then
+    # É um merge - vamos validar
+    MERGE_BRANCH=$(git name-rev --name-only MERGE_HEAD 2>/dev/null | sed 's/remotes\/origin\///')
+
+    echo -e "${CYAN}[Bundle Pro] Validando merge: ${MERGE_BRANCH} -> ${CURRENT_BRANCH}${NC}"
+
+    # Regra 1: Apenas branches feature/* podem fazer merge
+    if [[ ! "$MERGE_BRANCH" =~ ^feature\/ ]] && [[ "$MERGE_BRANCH" != "develop" ]]; then
+        echo ""
+        echo -e "${RED}========================================${NC}"
+        echo -e "${RED}[ERRO] Merge bloqueado!${NC}"
+        echo -e "${RED}========================================${NC}"
+        echo ""
+        echo -e "${YELLOW}Branch '${MERGE_BRANCH}' não segue o padrão de nomenclatura.${NC}"
+        echo ""
+        echo -e "${CYAN}Regras:${NC}"
+        echo "  - Apenas branches 'feature/*' podem ser mergeadas com develop"
+        echo "  - Apenas branch 'develop' pode ser mergeada com main"
+        echo ""
+        echo -e "${CYAN}Exemplo de branch válida:${NC}"
+        echo "  feature/meu-projeto"
+        echo "  feature/nova-funcionalidade"
+        echo ""
+        exit 1
+    fi
+
+    # Regra 2: feature/* -> develop (permitido)
+    if [[ "$MERGE_BRANCH" =~ ^feature\/ ]] && [[ "$CURRENT_BRANCH" == "develop" ]]; then
+        echo -e "${GREEN}[OK] Merge permitido: feature -> develop${NC}"
+        exit 0
+    fi
+
+    # Regra 3: develop -> main (permitido)
+    if [[ "$MERGE_BRANCH" == "develop" ]] && [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
+        echo -e "${GREEN}[OK] Merge permitido: develop -> main${NC}"
+        exit 0
+    fi
+
+    # Regra 4: feature/* -> main (bloqueado)
+    if [[ "$MERGE_BRANCH" =~ ^feature\/ ]] && [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
+        echo ""
+        echo -e "${RED}========================================${NC}"
+        echo -e "${RED}[ERRO] Merge bloqueado!${NC}"
+        echo -e "${RED}========================================${NC}"
+        echo ""
+        echo -e "${YELLOW}Features devem ser mergeadas primeiro com 'develop'${NC}"
+        echo -e "${YELLOW}antes de irem para 'main'.${NC}"
+        echo ""
+        echo -e "${CYAN}Fluxo correto:${NC}"
+        echo "  1. git checkout develop"
+        echo "  2. git merge ${MERGE_BRANCH}"
+        echo "  3. git push origin develop"
+        echo "  4. # Testar em ambiente de desenvolvimento"
+        echo "  5. git checkout main"
+        echo "  6. git merge develop"
+        echo "  7. git push origin main"
+        echo ""
+        exit 1
+    fi
+
+    # Regra 5: Qualquer outro merge não permitido
+    if [[ "$CURRENT_BRANCH" == "develop" ]] || [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
+        echo ""
+        echo -e "${RED}========================================${NC}"
+        echo -e "${RED}[ERRO] Merge bloqueado!${NC}"
+        echo -e "${RED}========================================${NC}"
+        echo ""
+        echo -e "${YELLOW}Merge de '${MERGE_BRANCH}' para '${CURRENT_BRANCH}' não é permitido.${NC}"
+        echo ""
+        echo -e "${CYAN}Fluxo permitido:${NC}"
+        echo "  - feature/* -> develop"
+        echo "  - develop -> main"
+        echo ""
+        exit 1
+    fi
+fi
+
+# Se não é um merge, permitir commit normal
+exit 0

@@ -101,7 +101,30 @@ bash uninstall.sh
 
 ## Fluxo de Desenvolvimento
 
-O bundlepro utiliza um fluxo simples de desenvolvimento com feature branches:
+O bundlepro utiliza um fluxo de desenvolvimento com **validação obrigatória de branches** seguindo Git Flow:
+
+### Regras de Branch (Validadas Automaticamente)
+
+O Bundle Pro valida automaticamente o fluxo de merge para garantir qualidade:
+
+1. ✅ **feature/*** → **develop** (Permitido)
+2. ✅ **develop** → **main** (Permitido)
+3. ❌ **feature/*** → **main** (Bloqueado - deve passar por develop primeiro)
+4. ❌ **outras branches** → **develop/main** (Bloqueado - apenas branches feature/* são permitidas)
+
+### Instalação dos Hooks de Validação
+
+Após clonar o repositório de projetos, instale os hooks de validação:
+
+```bash
+cd ~/seurepositorioprojetos
+
+# Instalar hooks do Bundle Pro
+bash <(curl -s https://raw.githubusercontent.com/SEUGIT/seurepositorio/master/install-hooks.sh)
+
+# OU se você já tem o bundlepro instalado localmente:
+bash ~/seurepositorio/install-hooks.sh
+```
 
 ### Passos Básicos
 
@@ -110,11 +133,13 @@ O bundlepro utiliza um fluxo simples de desenvolvimento com feature branches:
    cd ~/seurepositorioprojetos
    bundlepro meu-projeto
    ```
+   - O projeto é criado automaticamente em uma branch `feature/meu-projeto` a partir de `develop`
+   - Se `develop` não existir, será criada automaticamente
 
 2. **Desenvolver na feature branch**
-   - O projeto é criado automaticamente em uma branch `feature/meu-projeto`
    - Estrutura criada: `meu-databricks/meu-projeto`
    - Edite seu notebook e configurações
+   - Commit suas alterações
 
 3. **Validar e testar em DEV**
    ```bash
@@ -122,23 +147,39 @@ O bundlepro utiliza um fluxo simples de desenvolvimento com feature branches:
    databricks bundle deploy -t dev
    ```
 
-4. **Fazer merge com master**
+4. **Fazer merge com develop (OBRIGATÓRIO)**
    ```bash
-   git checkout master
-   git pull origin master
+   git checkout develop
+   git pull origin develop
    git merge feature/meu-projeto
-   git push origin master
+   git push origin develop
+   ```
+   ⚠️ **Importante**: O hook de validação bloqueia merge direto de feature para main!
+
+5. **Testar em develop**
+   ```bash
+   databricks bundle deploy -t dev
+   # Executar testes de validação
    ```
 
-5. **Deploy em Produção**
+6. **Fazer merge com main (Produção)**
+   ```bash
+   git checkout main
+   git pull origin main
+   git merge develop
+   git push origin main
+   ```
+
+7. **Deploy em Produção**
    ```bash
    databricks bundle deploy -t prod
    ```
 
 ### Ambientes
 
-- **dev**: Workspace de desenvolvimento (usa feature branch para testes)
-- **prod**: Workspace de produção (usa master branch após merge)
+- **develop**: Branch de integração (testes de features)
+- **main**: Branch de produção (código estável e validado)
+- **feature/***: Branches de desenvolvimento (uma por projeto/funcionalidade)
 
 ## Criação de Jobs
 
