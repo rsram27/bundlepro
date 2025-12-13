@@ -20,6 +20,7 @@ PROJECTS_DIR_NAME="seurepositorioprojetos"  # Customize com seu repositorio de p
 
 # Variaveis de controle
 CREATE_JOB=false
+CREATE_DASHBOARD=false
 
 # ============================================
 # FUNCOES DE CONFIGURACAO
@@ -261,6 +262,17 @@ ask_create_job() {
     fi
 }
 
+# Pergunta sobre criação de dashboard
+ask_create_dashboard() {
+    echo ""
+    read -p "Deseja criar um Dashboard para este projeto? (S/n): " RESP
+    if [ "$RESP" != "n" ] && [ "$RESP" != "N" ]; then
+        CREATE_DASHBOARD=true
+    else
+        CREATE_DASHBOARD=false
+    fi
+}
+
 # Criar arquivo de job
 create_job_file() {
     echo -e "  ${CYAN}[CRIANDO]${NC} resources/jobs.yml"
@@ -294,6 +306,58 @@ resources:
 JOBEOF
 }
 
+# Criar arquivo de dashboard
+create_dashboard_file() {
+    echo -e "  ${CYAN}[CRIANDO]${NC} resources/dashboards.yml"
+    cat > "$PROJECT_DIR/resources/dashboards.yml" << 'DASHBOARDEOF'
+resources:
+  dashboards:
+    analytics_dashboard:
+      display_name: "[${bundle.target}] ${bundle.name} Dashboard"
+      file_path: ../src/dashboard.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      embed_credentials: false
+
+      permissions:
+        - level: CAN_MANAGE
+          group_name: admins
+        - level: CAN_RUN
+          group_name: developers
+        - level: CAN_VIEW
+          group_name: users
+DASHBOARDEOF
+}
+
+# Criar arquivo JSON do dashboard
+create_dashboard_json() {
+    echo -e "  ${CYAN}[CRIANDO]${NC} src/dashboard.lvdash.json"
+    cat > "$PROJECT_DIR/src/dashboard.lvdash.json" << 'DASHBOARDJSONEOF'
+{
+  "pages": [
+    {
+      "name": "overview",
+      "displayName": "Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "sample_query",
+            "textbox_spec": "# ${bundle.name} Dashboard\n\nEste dashboard foi criado pelo bundlepro.\n\n## Parametros\n- Warehouse: ${var.warehouse_id}\n- Environment: ${bundle.target}"
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 4
+          }
+        }
+      ]
+    }
+  ],
+  "datasets": []
+}
+DASHBOARDJSONEOF
+}
+
 # Criar README
 create_readme() {
     echo -e "  ${CYAN}[CRIANDO]${NC} README.md"
@@ -312,10 +376,19 @@ READMEEOF
     echo "├── databricks.yml    # Configuracao do bundle" >> "$PROJECT_DIR/README.md"
     echo "├── src/" >> "$PROJECT_DIR/README.md"
     echo "│   └── notebook.py   # Notebook principal" >> "$PROJECT_DIR/README.md"
-    
-    if [ "$CREATE_JOB" == "true" ]; then
+
+    if [ "$CREATE_DASHBOARD" == "true" ]; then
+        echo "│   └── dashboard.lvdash.json  # Definicao do dashboard" >> "$PROJECT_DIR/README.md"
+    fi
+
+    if [ "$CREATE_JOB" == "true" ] || [ "$CREATE_DASHBOARD" == "true" ]; then
         echo "├── resources/" >> "$PROJECT_DIR/README.md"
-        echo "│   └── jobs.yml      # Definicao do job" >> "$PROJECT_DIR/README.md"
+        if [ "$CREATE_JOB" == "true" ]; then
+            echo "│   └── jobs.yml      # Definicao do job" >> "$PROJECT_DIR/README.md"
+        fi
+        if [ "$CREATE_DASHBOARD" == "true" ]; then
+            echo "│   └── dashboards.yml   # Definicao do dashboard" >> "$PROJECT_DIR/README.md"
+        fi
     fi
     
     echo "└── README.md" >> "$PROJECT_DIR/README.md"
@@ -339,7 +412,12 @@ READMEEOF
         echo "# Executar job" >> "$PROJECT_DIR/README.md"
         echo "databricks bundle run -t dev notebook_job" >> "$PROJECT_DIR/README.md"
     fi
-    
+
+    if [ "$CREATE_DASHBOARD" == "true" ]; then
+        echo "" >> "$PROJECT_DIR/README.md"
+        echo "# Acessar dashboard (URL sera exibida apos deploy)" >> "$PROJECT_DIR/README.md"
+    fi
+
     echo '```' >> "$PROJECT_DIR/README.md"
 }
 
@@ -357,6 +435,7 @@ INSTRUCOES DE USO - ${PROJECT_NAME}
 Projeto criado em: $(date '+%Y-%m-%d %H:%M:%S')
 Branch: ${ACTUAL_BRANCH}
 Job criado: $([ "$CREATE_JOB" == "true" ] && echo "Sim" || echo "Nao")
+Dashboard criado: $([ "$CREATE_DASHBOARD" == "true" ] && echo "Sim" || echo "Nao")
 
 ========================================
 PASSO A PASSO
@@ -377,7 +456,16 @@ INSTREOF
         cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
    Edite a configuracao do job (schedule, cluster, etc):
    nano resources/jobs.yml
-   
+
+INSTREOF
+    fi
+
+    if [ "$CREATE_DASHBOARD" == "true" ]; then
+        cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
+   Edite a configuracao do dashboard:
+   nano resources/dashboards.yml
+   nano src/dashboard.lvdash.json
+
 INSTREOF
     fi
 
@@ -486,6 +574,13 @@ resources/jobs.yml  - Definicao do job
 INSTREOF
     fi
 
+    if [ "$CREATE_DASHBOARD" == "true" ]; then
+        cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
+resources/dashboards.yml     - Definicao do dashboard
+src/dashboard.lvdash.json    - JSON do dashboard
+INSTREOF
+    fi
+
     cat >> "$PROJECT_DIR/INSTRUCOES.txt" << INSTREOF
 README.md           - Documentacao do projeto
 INSTRUCOES.txt      - Este arquivo (nao commitado)
@@ -568,75 +663,74 @@ fi
 # Pergunta interativa
 ask_create_job
 
+# Pergunta interativa - Dashboard
+ask_create_dashboard
+
 # Criar estrutura do projeto
 echo ""
 echo -e "${CYAN}Criando estrutura do projeto...${NC}"
 mkdir -p "$PROJECT_DIR/src"
-if [ "$CREATE_JOB" == "true" ]; then
+if [ "$CREATE_JOB" == "true" ] || [ "$CREATE_DASHBOARD" == "true" ]; then
     mkdir -p "$PROJECT_DIR/resources"
 fi
 
 # Criar databricks.yml
 echo -e "  ${CYAN}[CRIANDO]${NC} databricks.yml"
 
-if [ "$CREATE_JOB" == "true" ]; then
-    cat > "$PROJECT_DIR/databricks.yml" << YMLEOF
-bundle:
-  name: ${PROJECT_NAME}
-
-include:
-  - resources/*.yml
-
-variables:
-  catalog:
-    description: "Catalog name for the environment"
-  cluster_id:
-    description: "Cluster ID for job execution"
-
-targets:
-  dev:
-    mode: development
-    default: true
-    workspace:
-      root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
-    variables:
-      catalog: dev_catalog
-      cluster_id: ""
-  
-  prod:
-    mode: production
-    workspace:
-      root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
-    variables:
-      catalog: prd_catalog
-      cluster_id: ""
-YMLEOF
-else
-    cat > "$PROJECT_DIR/databricks.yml" << YMLEOF
-bundle:
-  name: ${PROJECT_NAME}
-
-variables:
-  catalog:
-    description: "Catalog name for the environment"
-
-targets:
-  dev:
-    mode: development
-    default: true
-    workspace:
-      root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
-    variables:
-      catalog: dev_catalog
-  
-  prod:
-    mode: production
-    workspace:
-      root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
-    variables:
-      catalog: prd_catalog
-YMLEOF
+# Construir seção de includes
+INCLUDES=""
+if [ "$CREATE_JOB" == "true" ] || [ "$CREATE_DASHBOARD" == "true" ]; then
+    INCLUDES="include:\n  - resources/*.yml\n\n"
 fi
+
+# Construir seção de variáveis
+VARIABLES="variables:\n  catalog:\n    description: \"Catalog name for the environment\""
+
+if [ "$CREATE_JOB" == "true" ]; then
+    VARIABLES="${VARIABLES}\n  cluster_id:\n    description: \"Cluster ID for job execution\""
+fi
+
+if [ "$CREATE_DASHBOARD" == "true" ]; then
+    VARIABLES="${VARIABLES}\n  warehouse_id:\n    description: \"Warehouse ID for dashboard execution\""
+fi
+
+# Construir valores de variáveis para targets
+DEV_VARS="catalog: dev_catalog"
+PROD_VARS="catalog: prd_catalog"
+
+if [ "$CREATE_JOB" == "true" ]; then
+    DEV_VARS="${DEV_VARS}\n      cluster_id: \"\""
+    PROD_VARS="${PROD_VARS}\n      cluster_id: \"\""
+fi
+
+if [ "$CREATE_DASHBOARD" == "true" ]; then
+    DEV_VARS="${DEV_VARS}\n      warehouse_id: \"\""
+    PROD_VARS="${PROD_VARS}\n      warehouse_id: \"\""
+fi
+
+# Gerar databricks.yml
+cat > "$PROJECT_DIR/databricks.yml" << YMLEOF
+bundle:
+  name: ${PROJECT_NAME}
+
+$(echo -e "$INCLUDES")$(echo -e "$VARIABLES")
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      root_path: ~/.bundle/\${bundle.name}/\${bundle.target}
+    variables:
+      $(echo -e "$DEV_VARS")
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/databricks-bundles/\${bundle.name}/prod
+    variables:
+      $(echo -e "$PROD_VARS")
+YMLEOF
 
 # Criar notebook principal
 echo -e "  ${CYAN}[CRIANDO]${NC} src/notebook.py"
@@ -697,6 +791,12 @@ if [ "$CREATE_JOB" == "true" ]; then
     create_job_file
 fi
 
+# Criar dashboard se solicitado
+if [ "$CREATE_DASHBOARD" == "true" ]; then
+    create_dashboard_file
+    create_dashboard_json
+fi
+
 # Criar .gitignore
 echo -e "  ${CYAN}[CRIANDO]${NC} .gitignore"
 cat > "$PROJECT_DIR/.gitignore" << 'GITIGNOREEOF'
@@ -728,6 +828,7 @@ echo -e "${BLUE}Projeto:${NC}     ${PROJECT_NAME}"
 echo -e "${BLUE}Localizacao:${NC} ${PROJECT_DIR}"
 echo -e "${BLUE}Branch:${NC}      ${CURRENT_BRANCH}"
 echo -e "${BLUE}Job criado:${NC}  $([ "$CREATE_JOB" == "true" ] && echo "Sim" || echo "Nao")"
+echo -e "${BLUE}Dashboard criado:${NC}  $([ "$CREATE_DASHBOARD" == "true" ] && echo "Sim" || echo "Nao")"
 echo ""
 
 # PROXIMOS PASSOS
@@ -744,6 +845,10 @@ echo ""
 echo "   nano src/notebook.py"
 if [ "$CREATE_JOB" == "true" ]; then
 echo "   nano resources/jobs.yml"
+fi
+if [ "$CREATE_DASHBOARD" == "true" ]; then
+echo "   nano resources/dashboards.yml"
+echo "   nano src/dashboard.lvdash.json"
 fi
 echo "   nano databricks.yml"
 echo ""

@@ -4,6 +4,18 @@
 
 Ferramenta CLI para criar projetos Databricks Asset Bundles padronizados.
 
+## O que o Bundle Pro oferece?
+
+O Bundle Pro cria projetos Databricks padronizados com os seguintes recursos:
+
+| Recurso | Descrição | Quando usar |
+|---------|-----------|-------------|
+| **Notebook** | Sempre incluído | Base para análises e processamento |
+| **Job** | Execução agendada | Pipelines ETL, processos recorrentes |
+| **Dashboard** | Visualização de dados | KPIs, análises visuais, monitoramento |
+
+**Flexibilidade total**: Você escolhe quais recursos criar ao executar o comando.
+
 ## Instalacao (Novos Usuarios)
 
 ### Passo 1: Clonar este repositorio
@@ -52,6 +64,16 @@ cd ~/seurepositorioprojetos
 # Criar novo projeto
 bundlepro meu-projeto
 ```
+
+Durante a criação do projeto, você será perguntado se deseja criar:
+- **Job**: Para execução agendada de notebooks
+- **Dashboard**: Para visualização de dados e análises
+
+Você pode criar:
+- Apenas notebook (responder N para ambos)
+- Notebook + Job
+- Notebook + Dashboard
+- Notebook + Job + Dashboard (responder S para ambos)
 
 ## Comandos Disponiveis
 ```bash
@@ -135,16 +157,27 @@ bash ~/seurepositorio/install-hooks.sh
    ```
    - O projeto é criado automaticamente em uma branch `feature/meu-projeto` a partir de `develop`
    - Se `develop` não existir, será criada automaticamente
+   - Durante a criação, responda às perguntas sobre criação de Job e Dashboard conforme sua necessidade
 
 2. **Desenvolver na feature branch**
    - Estrutura criada: `meu-databricks/meu-projeto`
    - Edite seu notebook e configurações
+   - Se criou job: edite `resources/jobs.yml` (schedule, cluster, notificações)
+   - Se criou dashboard: edite `resources/dashboards.yml` e `src/dashboard.lvdash.json`
+   - Configure IDs necessários em `databricks.yml`:
+     - `cluster_id` (se criou job)
+     - `warehouse_id` (se criou dashboard)
    - Commit suas alterações
 
 3. **Validar e testar em DEV**
    ```bash
    databricks bundle validate -t dev
    databricks bundle deploy -t dev
+
+   # Se criou job, executar:
+   databricks bundle run -t dev notebook_job
+
+   # Se criou dashboard, acessar URL exibida após deploy
    ```
 
 4. **Fazer merge com develop (OBRIGATÓRIO)**
@@ -181,11 +214,45 @@ bash ~/seurepositorio/install-hooks.sh
 - **main**: Branch de produção (código estável e validado)
 - **feature/***: Branches de desenvolvimento (uma por projeto/funcionalidade)
 
-## Criação de Jobs
+### Exemplos de Cenários de Uso
 
-O **bundlepro** pode criar automaticamente jobs para execução de notebooks no Databricks.
+#### Cenário 1: Notebook simples para análise exploratória
+```bash
+bundlepro analise-vendas
+# Responder: N para Job, N para Dashboard
+```
+**Resultado**: Projeto com apenas notebook, ideal para análises ad-hoc.
 
-### Configuração de Jobs
+#### Cenário 2: Pipeline de dados agendado
+```bash
+bundlepro pipeline-etl
+# Responder: S para Job, N para Dashboard
+```
+**Resultado**: Projeto com notebook + job agendado, ideal para ETL recorrente.
+
+#### Cenário 3: Dashboard de visualização
+```bash
+bundlepro dashboard-vendas
+# Responder: N para Job, S para Dashboard
+```
+**Resultado**: Projeto com notebook + dashboard, ideal para análises visuais.
+
+#### Cenário 4: Pipeline completo com monitoramento
+```bash
+bundlepro pipeline-completo
+# Responder: S para Job, S para Dashboard
+```
+**Resultado**: Projeto completo com notebook, job agendado e dashboard de monitoramento.
+
+## Recursos Disponíveis
+
+O **bundlepro** pode criar automaticamente diferentes tipos de recursos do Databricks:
+
+### Criação de Jobs
+
+Jobs permitem a execução agendada e automatizada de notebooks no Databricks.
+
+**Configuração Automática:**
 
 Ao criar um novo projeto, você será perguntado se deseja criar um job. Se optar por criar, o arquivo `resources/jobs.yml` será gerado com:
 
@@ -193,6 +260,31 @@ Ao criar um novo projeto, você será perguntado se deseja criar um job. Se opta
 - **Cluster**: Referencia um cluster existente via variável `${var.cluster_id}`
 - **Notificações**: Configurado para enviar email em caso de falha
 - **Timeout**: 2 horas de tempo máximo de execução
+
+### Criação de Dashboards
+
+Dashboards permitem a visualização de dados e análises usando Databricks Lakeview.
+
+**Configuração Automática:**
+
+Ao criar um novo projeto, você será perguntado se deseja criar um dashboard. Se optar por criar, os seguintes arquivos serão gerados:
+
+- **`resources/dashboards.yml`**: Configuração do dashboard
+  - **SQL Warehouse**: Referencia um warehouse via variável `${var.warehouse_id}`
+  - **Permissões**: Configurado com níveis CAN_MANAGE, CAN_RUN e CAN_VIEW
+  - **Embed credentials**: Configurável para compartilhamento
+
+- **`src/dashboard.lvdash.json`**: Definição do dashboard Lakeview
+  - Template básico com página de overview
+  - Widget de texto configurável
+  - Estrutura para adicionar queries e visualizações
+
+**Editando o Dashboard:**
+
+Você pode editar o arquivo JSON manualmente ou:
+1. Criar o dashboard na interface do Databricks
+2. Exportar a definição JSON
+3. Substituir o conteúdo de `src/dashboard.lvdash.json`
 
 ## Deploy e Validação de Bundles
 
@@ -253,6 +345,93 @@ databricks clusters list
 
 Copie o valor da coluna `ID` do cluster desejado.
 
+### Configurar Warehouse ID para Dashboards
+
+**Importante**: Se você criou um projeto com dashboard, é necessário configurar o ID do warehouse que será usado pelo dashboard antes do primeiro deploy.
+
+**Opção 1: Via linha de comando**
+```bash
+databricks bundle deploy -t dev -var warehouse_id=YOUR_WAREHOUSE_ID
+```
+
+**Opção 2: Editar databricks.yml** (recomendado para configuração permanente)
+
+Edite o arquivo `databricks.yml` do seu projeto e defina o `warehouse_id` em cada target:
+
+```yaml
+targets:
+  dev:
+    variables:
+      warehouse_id: "abc123def456"
+  prod:
+    variables:
+      warehouse_id: "xyz789uvw012"
+```
+
+**Como encontrar o Warehouse ID:**
+```bash
+databricks warehouses list
+```
+
+Copie o valor da coluna `id` do warehouse desejado.
+
+## Estrutura de Arquivos dos Projetos
+
+A estrutura de arquivos criada pelo bundlepro varia de acordo com os recursos selecionados:
+
+### Projeto com Notebook apenas
+```
+meu-projeto/
+├── databricks.yml           # Bundle config (apenas catalog)
+├── src/
+│   └── notebook.py          # Notebook principal
+├── README.md
+├── .gitignore
+└── INSTRUCOES.txt
+```
+
+### Projeto com Notebook + Job
+```
+meu-projeto/
+├── databricks.yml           # Bundle config (catalog + cluster_id)
+├── src/
+│   └── notebook.py          # Notebook principal
+├── resources/
+│   └── jobs.yml             # Configuração do job
+├── README.md
+├── .gitignore
+└── INSTRUCOES.txt
+```
+
+### Projeto com Notebook + Dashboard
+```
+meu-projeto/
+├── databricks.yml           # Bundle config (catalog + warehouse_id)
+├── src/
+│   ├── notebook.py          # Notebook principal
+│   └── dashboard.lvdash.json # Definição do dashboard
+├── resources/
+│   └── dashboards.yml       # Configuração do dashboard
+├── README.md
+├── .gitignore
+└── INSTRUCOES.txt
+```
+
+### Projeto Completo (Notebook + Job + Dashboard)
+```
+meu-projeto/
+├── databricks.yml           # Bundle config (catalog + cluster_id + warehouse_id)
+├── src/
+│   ├── notebook.py          # Notebook principal
+│   └── dashboard.lvdash.json # Definição do dashboard
+├── resources/
+│   ├── jobs.yml             # Configuração do job
+│   └── dashboards.yml       # Configuração do dashboard
+├── README.md
+├── .gitignore
+└── INSTRUCOES.txt
+```
+
 ## Exemplo de Saída Validação
 
 Após as correções, o bundle valida sem erros:
@@ -266,6 +445,79 @@ Workspace:
   Path: /Workspace/Users/seu-usuario@example.com/.bundle/meu-projeto/dev
 ```
 
+## Dicas e Melhores Práticas
+
+### Quando usar cada recurso?
+
+**Notebooks:**
+- Sempre incluído em todos os projetos
+- Base para análises, transformações e processamento de dados
+- Pode ser executado manualmente ou via job
+
+**Jobs:**
+- ✅ Use quando precisar de execução agendada (diário, semanal, etc.)
+- ✅ Use para pipelines de ETL/ELT automatizados
+- ✅ Use para processos que devem rodar sem intervenção manual
+- ❌ Não use para análises exploratórias pontuais
+
+**Dashboards:**
+- ✅ Use para visualização de dados e KPIs
+- ✅ Use para compartilhar análises com stakeholders
+- ✅ Use para monitoramento de métricas em tempo real
+- ✅ Combine com Jobs para atualização automática de dados
+- ❌ Não use para processamento pesado de dados
+
+### Fluxo de Trabalho Recomendado
+
+**Pipeline ETL completo:**
+1. Criar projeto com Job + Dashboard
+2. Notebook processa dados (ETL)
+3. Job agenda execução diária
+4. Dashboard visualiza resultados
+
+**Análise exploratória:**
+1. Criar projeto apenas com Notebook
+2. Executar análises interativamente
+3. Se necessário, converter em Job posteriormente
+
+**Dashboard de negócio:**
+1. Criar projeto com Dashboard
+2. Notebook prepara dados
+3. Dashboard exibe visualizações
+4. Adicionar Job se precisar de atualização automática
+
+### Configuração de Variáveis
+
+**Importante**: Sempre configure as variáveis necessárias antes do primeiro deploy:
+
+```yaml
+# databricks.yml
+targets:
+  dev:
+    variables:
+      catalog: dev_catalog
+      cluster_id: "seu-cluster-id"      # Se criou Job
+      warehouse_id: "seu-warehouse-id"  # Se criou Dashboard
+
+  prod:
+    variables:
+      catalog: prd_catalog
+      cluster_id: "seu-cluster-prod-id"
+      warehouse_id: "seu-warehouse-prod-id"
+```
+
+### Gerenciamento de Permissões
+
+**Jobs:**
+- Configurar email de notificação em `resources/jobs.yml`
+- Ajustar timeout conforme necessidade do processamento
+
+**Dashboards:**
+- Ajustar níveis de permissão em `resources/dashboards.yml`:
+  - `CAN_MANAGE`: Administradores (editar e compartilhar)
+  - `CAN_RUN`: Desenvolvedores (executar queries)
+  - `CAN_VIEW`: Usuários de negócio (apenas visualizar)
+
 ## Troubleshooting
 
 ### Erro "Permission denied"
@@ -276,6 +528,48 @@ bash install.sh
 ```
 
 O script corrige automaticamente as permissões necessárias.
+
+### Erro ao validar bundle com Dashboard
+
+**Problema**: `warehouse_id` não configurado
+
+**Solução**:
+```bash
+# Opção 1: Via CLI
+databricks bundle deploy -t dev -var warehouse_id=YOUR_WAREHOUSE_ID
+
+# Opção 2: Editar databricks.yml
+# Adicionar warehouse_id no target desejado
+```
+
+### Erro ao validar bundle com Job
+
+**Problema**: `cluster_id` não configurado
+
+**Solução**:
+```bash
+# Listar clusters disponíveis
+databricks clusters list
+
+# Usar o ID no deploy
+databricks bundle deploy -t dev -var cluster_id=YOUR_CLUSTER_ID
+```
+
+### Dashboard não exibe dados
+
+**Verificações**:
+1. Warehouse está rodando? `databricks warehouses list`
+2. Permissões do warehouse estão corretas?
+3. Dashboard JSON está com sintaxe válida?
+4. Dados foram processados pelo notebook?
+
+### Job falha ao executar
+
+**Verificações**:
+1. Cluster está disponível? `databricks clusters list`
+2. Cluster ID está correto no databricks.yml?
+3. Timeout configurado é suficiente?
+4. Verificar logs: `databricks bundle run -t dev notebook_job --debug`
 
 ## Suporte
 
