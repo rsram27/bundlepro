@@ -16,7 +16,6 @@ NC='\033[0m' # No Color
 # Configuração
 CONFIG_DIR="$HOME/.bundlepro"
 CONFIG_FILE="$CONFIG_DIR/config"
-PROJECTS_DIR_NAME="seurepositorioprojetos"  # Customize com seu repositorio de projetos
 
 # Variaveis de controle
 CREATE_JOB=false
@@ -74,6 +73,11 @@ configure_bundlepro() {
         echo -e "${RED}[ERRO] Token não pode estar vazio!${NC}"
         exit 1
     fi
+
+    # Solicitar Email
+    echo ""
+    echo -e "${CYAN}Email para notificações de Job${NC}"
+    read -p "Email: " DATABRICKS_EMAIL
     
     # Salvar configuração
     cat > "$CONFIG_FILE" << CONFIGEOF
@@ -83,6 +87,7 @@ configure_bundlepro() {
 
 export DATABRICKS_HOST="$DATABRICKS_HOST"
 export DATABRICKS_TOKEN="$DATABRICKS_TOKEN"
+export DATABRICKS_EMAIL="$DATABRICKS_EMAIL"
 CONFIGEOF
     
     chmod 600 "$CONFIG_FILE"
@@ -91,10 +96,43 @@ CONFIGEOF
     echo -e "${GREEN}[OK] Configuração salva em $CONFIG_FILE${NC}"
     echo ""
     echo -e "${CYAN}Próximas ações:${NC}"
-    echo "1. Clone o repositório: git clone git@github.com:SEUGIT/seurepositorio.git ~/seurepositorio"
-    echo "2. Instale: cd ~/seurepositorio && bash install.sh"
-    echo "3. Clone o repositório de projetos: git clone git@github.com:SEUGIT/seurepositorioprojetos.git ~/seurepositorioprojetos"
+    echo "1. Clone o repositório: git clone git@github.com:<your-git-username>/<your-bundle-pro-repo>.git ~/bundlepro"
+    echo "2. Instale: cd ~/bundlepro && bash install.sh"
+    echo "3. Clone o repositório de projetos: git clone git@github.com:<your-git-username>/<your-projects-repo>.git ~/<your-projects-repo>"
+    echo "4. Configure o repositório de projetos: bundlepro configure-projects-repo ~/<your-projects-repo>"
 }
+
+# Configurar o repositório de projetos
+configure_projects_repo() {
+    echo -e "${GREEN}========================================${NC}"
+    echo -e "${GREEN}Configuração do Repositório de Projetos${NC}"
+    echo -e "${GREEN}========================================${NC}"
+    echo ""
+    
+    if [ -z "$1" ]; then
+        echo -e "${RED}[ERRO] O caminho para o repositório de projetos é obrigatório!${NC}"
+        echo ""
+        echo -e "${CYAN}Uso:${NC}"
+        echo "  bundlepro configure-projects-repo <caminho-para-o-repositorio-de-projetos>"
+        echo ""
+        echo -e "${CYAN}Exemplo:${NC}"
+        echo "  bundlepro configure-projects-repo ~/<your-projects-repo>"
+        exit 1
+    fi
+    
+    PROJECTS_REPO_PATH=$(eval echo "$1")
+    
+    if [ ! -d "$PROJECTS_REPO_PATH" ]; then
+        echo -e "${RED}[ERRO] O diretório '$PROJECTS_REPO_PATH' não existe!${NC}"
+        exit 1
+    fi
+    
+    echo "export PROJECTS_DIR_NAME='$PROJECTS_REPO_PATH'" >> "$CONFIG_FILE"
+    
+    echo ""
+    echo -e "${GREEN}[OK] Repositório de projetos configurado em $CONFIG_FILE${NC}"
+}
+
 
 # ============================================
 # FUNCOES DE PROJETO
@@ -114,6 +152,7 @@ show_usage() {
     echo -e "${CYAN}Uso:${NC}"
     echo "  bundlepro <nome-do-projeto>"
     echo "  bundlepro configure"
+    echo "  bundlepro configure-projects-repo <caminho-para-o-repositorio-de-projetos>"
     echo "  bundlepro --version"
     echo "  bundlepro --help"
     echo ""
@@ -137,16 +176,26 @@ show_version() {
     echo "Bundle Pro - Data Engineering"
 }
 
-# Verificar diretorio atual
-check_directory() {
-    CURRENT_DIR=$(pwd)
-    
-    # Verificar se estamos em um repositorio git
+# Verificar se estamos em um repositorio git
+check_git_repository() {
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         echo -e "${RED}[ERRO] Nao esta em um repositorio Git!${NC}"
         echo ""
         echo -e "${CYAN}Entre no seu repositorio de projetos e tente novamente:${NC}"
-        echo "  cd ~/seurepositorioprojetos"
+        echo "  cd ~/$PROJECTS_DIR_NAME"
+        echo "  bundlepro $1"
+        echo ""
+        exit 1
+    fi
+}
+
+# Verificar se estamos no diretorio de projetos
+check_projects_directory() {
+    if [ "$(pwd)" != "$PROJECTS_DIR_NAME" ]; then
+        echo -e "${RED}[ERRO] Este comando deve ser executado a partir do diretorio de projetos!${NC}"
+        echo ""
+        echo -e "${CYAN}Entre no seu repositorio de projetos e tente novamente:${NC}"
+        echo "  cd ~/$PROJECTS_DIR_NAME"
         echo "  bundlepro $1"
         echo ""
         exit 1
@@ -299,7 +348,7 @@ resources:
       
       email_notifications:
         on_failure:
-          - seu-email@exemplo.com.br
+          - ${DATABRICKS_EMAIL}
       
       max_concurrent_runs: 1
       timeout_seconds: 7200
@@ -606,6 +655,11 @@ if [ "$1" == "configure" ]; then
     exit 0
 fi
 
+if [ "$1" == "configure-projects-repo" ]; then
+    configure_projects_repo "$2"
+    exit 0
+fi
+
 if [ "$1" == "--version" ] || [ "$1" == "-v" ]; then
     show_version
     exit 0
@@ -644,7 +698,8 @@ export DATABRICKS_HOST
 export DATABRICKS_TOKEN
 
 # Verificar diretorio
-check_directory "$PROJECT_NAME"
+check_git_repository
+check_projects_directory "$PROJECT_NAME"
 
 # Verificar e criar branch automaticamente
 check_and_create_branch "$PROJECT_NAME"

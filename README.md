@@ -16,16 +16,31 @@ O Bundle Pro cria projetos Databricks padronizados com os seguintes recursos:
 
 **Flexibilidade total**: Você escolhe quais recursos criar ao executar o comando.
 
+## How it Works
+
+The `bundlepro` script is a command-line tool that helps you create standardized Databricks Asset Bundle projects. It is designed to be used in conjunction with a Git repository, and it enforces a Gitflow-based development workflow.
+
+When you run the `bundlepro` script with a project name, it will:
+
+1.  Create a new feature branch in your Git repository.
+2.  Create a new directory for your project.
+3.  Create a `databricks.yml` file with the basic configuration for your project.
+4.  Create a `src/notebook.py` file with a template notebook.
+5.  Optionally, create a `resources/jobs.yml` file with a template for a Databricks Job.
+6.  Optionally, create a `resources/dashboards.yml` file with a template for a Databricks Dashboard.
+
+The script also provides a `configure` command that allows you to configure your Databricks workspace and authentication token. This information is stored in a configuration file in your home directory, and it is used by the `bundlepro` script to authenticate with your Databricks workspace.
+
 ## Instalacao (Novos Usuarios)
 
 ### Passo 1: Clonar este repositorio
 ```bash
-git clone git@github.com:SEUGIT/seurepositorio.git ~/seurepositorio
+git clone git@github.com:<your-git-username>/<your-bundle-pro-repo>.git ~/bundlepro
 ```
 
 ### Passo 2: Instalar o bundlepro
 ```bash
-cd ~/seurepositorio
+cd ~/bundlepro
 bash install.sh
 ```
 
@@ -44,12 +59,12 @@ Essas informações serão salvas de forma segura em `~/.bundlepro/config` (some
 
 ### Passo 4: Clonar o repositorio de projetos (seu repositorio de trabalho)
 ```bash
-git clone git@github.com:SEUGIT/seurepositorioprojetos.git ~/seurepositorioprojetos
+git clone git@github.com:<your-git-username>/<your-projects-repo>.git ~/<your-projects-repo>
 ```
 
 ## Atualizacao (Usuarios Existentes)
 ```bash
-cd ~/seurepositorio
+cd ~/bundlepro
 git pull origin master
 bash install.sh
 ```
@@ -59,7 +74,7 @@ bash install.sh
 ## Uso
 ```bash
 # Entrar no repositorio de projetos
-cd ~/seurepositorioprojetos
+cd ~/<your-projects-repo>
 
 # Criar novo projeto
 bundlepro meu-projeto
@@ -111,7 +126,7 @@ Será solicitado novamente o endereço do workspace e token.
 
 ## Desinstalacao
 ```bash
-cd ~/seurepositorio
+cd ~/bundlepro
 bash uninstall.sh
 ```
 
@@ -139,20 +154,20 @@ O Bundle Pro valida automaticamente o fluxo de merge para garantir qualidade:
 Após clonar o repositório de projetos, instale os hooks de validação:
 
 ```bash
-cd ~/seurepositorioprojetos
+cd ~/<your-projects-repo>
 
 # Instalar hooks do Bundle Pro
-bash <(curl -s https://raw.githubusercontent.com/SEUGIT/seurepositorio/master/install-hooks.sh)
+bash <(curl -s https://raw.githubusercontent.com/<your-git-username>/<your-bundle-pro-repo>/master/install-hooks.sh)
 
 # OU se você já tem o bundlepro instalado localmente:
-bash ~/seurepositorio/install-hooks.sh
+bash ~/bundlepro/install-hooks.sh
 ```
 
 ### Passos Básicos
 
 1. **Criar novo projeto**
    ```bash
-   cd ~/seurepositorioprojetos
+   cd ~/<your-projects-repo>
    bundlepro meu-projeto
    ```
    - O projeto é criado automaticamente em uma branch `feature/meu-projeto` a partir de `develop`
@@ -290,7 +305,7 @@ Você pode editar o arquivo JSON manualmente ou:
 
 **Validar bundle:**
 ```bash
-cd ~/seurepositorioprojetos/meu-projeto
+cd ~/<your-projects-repo>/meu-projeto
 databricks bundle validate -t dev
 ```
 
@@ -570,6 +585,43 @@ databricks bundle deploy -t dev -var cluster_id=YOUR_CLUSTER_ID
 2. Cluster ID está correto no databricks.yml?
 3. Timeout configurado é suficiente?
 4. Verificar logs: `databricks bundle run -t dev notebook_job --debug`
+
+## Troubleshooting
+
+**Problem: `bundlepro` command not found**
+
+If you get an error message saying that the `bundlepro` command is not found, it means that the script is not in your `PATH`. To fix this, you need to add the directory where you cloned the `bundlepro` repository to your `PATH`.
+
+For example, if you cloned the repository to `~/bundlepro`, you would add the following line to your `~/.bashrc` or `~/.zshrc` file:
+
+```bash
+export PATH="$HOME/bundlepro:$PATH"
+```
+
+**Problem: "Permission denied" error when running `install.sh`**
+
+If you get a "Permission denied" error when running the `install.sh` script, it means that the script does not have execute permissions. To fix this, you need to give the script execute permissions by running the following command:
+
+```bash
+chmod +x install.sh
+```
+
+**Problem: "Permission denied" error when running `bundlepro`**
+
+If you get a "Permission denied" error when running the `bundlepro` script, it means that the script does not have execute permissions. To fix this, you need to give the script execute permissions by running the following command:
+
+```bash
+chmod +x bundlepro
+```
+
+## Contributing
+
+Contributions are welcome! If you would like to contribute to this project, please follow these steps:
+
+1.  Fork the repository.
+2.  Create a new feature branch.
+3.  Make your changes.
+4.  Submit a pull request.
 
 ## Suporte
 
