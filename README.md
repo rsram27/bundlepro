@@ -16,6 +16,14 @@ O Bundle Pro cria projetos Databricks padronizados com os seguintes recursos:
 
 **Flexibilidade total**: Você escolhe quais recursos criar ao executar o comando.
 
+## Pré-requisitos
+
+Antes de usar o Bundle Pro, certifique-se de ter:
+- Git instalado e configurado
+- Databricks CLI instalado
+- Acesso ao seu workspace Databricks
+- Chave SSH configurada para acesso ao repositório
+
 ## How it Works
 
 The `bundlepro` script is a command-line tool that helps you create standardized Databricks Asset Bundle projects. It is designed to be used in conjunction with a Git repository, and it enforces a Gitflow-based development workflow.
@@ -31,9 +39,9 @@ When you run the `bundlepro` script with a project name, it will:
 
 The script also provides a `configure` command that allows you to configure your Databricks workspace and authentication token. This information is stored in a configuration file in your home directory, and it is used by the `bundlepro` script to authenticate with your Databricks workspace.
 
-## Instalacao (Novos Usuarios)
+## Instalação (Novos Usuários)
 
-### Passo 1: Clonar este repositorio
+### Passo 1: Clonar este repositório
 ```bash
 git clone git@github.com:<your-git-username>/<your-bundle-pro-repo>.git ~/bundlepro
 ```
@@ -52,17 +60,17 @@ bundlepro configure
 ```
 
 Você será solicitado a fornecer:
-- **Endereço do Workspace**: URL do seu workspace Databricks
+- **Endereço do Workspace**: URL do seu workspace Databricks (ex: https://adb-1234567890123456.7.azuredatabricks.net)
 - **Token de Autenticação**: Token gerado em Settings > User Settings > Access Tokens
 
 Essas informações serão salvas de forma segura em `~/.bundlepro/config` (somente para seu usuário).
 
-### Passo 4: Clonar o repositorio de projetos (seu repositorio de trabalho)
+### Passo 4: Clonar o repositório de projetos (seu repositório de trabalho)
 ```bash
 git clone git@github.com:<your-git-username>/<your-projects-repo>.git ~/<your-projects-repo>
 ```
 
-## Atualizacao (Usuarios Existentes)
+## Atualização (Usuários Existentes)
 ```bash
 cd ~/bundlepro
 git pull origin master
@@ -73,7 +81,7 @@ bash install.sh
 
 ## Uso
 ```bash
-# Entrar no repositorio de projetos
+# Entrar no repositório de projetos
 cd ~/<your-projects-repo>
 
 # Criar novo projeto
@@ -90,12 +98,20 @@ Você pode criar:
 - Notebook + Dashboard
 - Notebook + Job + Dashboard (responder S para ambos)
 
-## Comandos Disponiveis
+**Exemplo de execução:**
+```bash
+$ bundlepro analise-vendas
+Deseja criar um Job para este projeto? (S/N): N
+Deseja criar um Dashboard para este projeto? (S/N): N
+Projeto 'analise-vendas' criado com sucesso!
+```
+
+## Comandos Disponíveis
 ```bash
 bundlepro <nome-projeto>   # Criar novo projeto
 bundlepro configure        # Configurar workspace e autenticação
 bundlepro --help           # Mostrar ajuda
-bundlepro --version        # Mostrar versao
+bundlepro --version        # Mostrar versão
 ```
 
 ## Gerenciamento de Configuração
@@ -114,6 +130,13 @@ Este arquivo:
 - **NÃO é afetado** por atualizações ou pull do repositório
 - Pode ser atualizado a qualquer momento com `bundlepro configure`
 
+**Exemplo de conteúdo do arquivo:**
+```ini
+[databricks]
+workspace_url = https://seu-workspace.databricks.com
+auth_token = seu-token-aqui
+```
+
 ### Atualizar Configuração
 
 Para mudar workspace, token ou qualquer configuração:
@@ -124,7 +147,7 @@ bundlepro configure
 
 Será solicitado novamente o endereço do workspace e token.
 
-## Desinstalacao
+## Desinstalação
 ```bash
 cd ~/bundlepro
 bash uninstall.sh
@@ -132,9 +155,10 @@ bash uninstall.sh
 
 ## Requisitos
 
-- Git instalado
+- Git instalado e configurado
 - Databricks CLI instalado
-- Acesso ao repositorio BundlePro (chave SSH configurada)
+- Acesso ao repositório BundlePro (chave SSH configurada)
+- Python 3.7+ (para execução de scripts)
 
 ## Fluxo de Desenvolvimento
 
@@ -148,6 +172,11 @@ O Bundle Pro valida automaticamente o fluxo de merge para garantir qualidade:
 2. ✅ **develop** → **main** (Permitido)
 3. ❌ **feature/*** → **main** (Bloqueado - deve passar por develop primeiro)
 4. ❌ **outras branches** → **develop/main** (Bloqueado - apenas branches feature/* são permitidas)
+
+**Diagrama do fluxo:**
+```
+main ← develop ← feature/meu-projeto
+```
 
 ### Instalação dos Hooks de Validação
 
@@ -460,6 +489,12 @@ Workspace:
   Path: /Workspace/Users/seu-usuario@example.com/.bundle/meu-projeto/dev
 ```
 
+**Exemplo de erro comum (cluster_id não configurado):**
+```bash
+$ databricks bundle validate -t dev
+Error: Variable 'cluster_id' is not defined in target 'dev'
+```
+
 ## Dicas e Melhores Práticas
 
 ### Quando usar cada recurso?
@@ -586,6 +621,19 @@ databricks bundle deploy -t dev -var cluster_id=YOUR_CLUSTER_ID
 3. Timeout configurado é suficiente?
 4. Verificar logs: `databricks bundle run -t dev notebook_job --debug`
 
+### Erro de autenticação
+
+**Problema**: Token expirado ou inválido
+
+**Solução**:
+```bash
+# Atualizar token
+bundlepro configure
+
+# Verificar configuração
+cat ~/.bundlepro/config
+```
+
 ## Troubleshooting
 
 **Problem: `bundlepro` command not found**
@@ -618,11 +666,48 @@ chmod +x bundlepro
 
 Contributions are welcome! If you would like to contribute to this project, please follow these steps:
 
-1.  Fork the repository.
-2.  Create a new feature branch.
-3.  Make your changes.
-4.  Submit a pull request.
+1. Fork the repository
+2. Create a new feature branch: `git checkout -b feature/minha-nova-funcionalidade`
+3. Make your changes and commit: `git commit -m "feat: adiciona nova funcionalidade"`
+4. Push to the branch: `git push origin feature/minha-nova-funcionalidade`
+5. Submit a pull request
+
+**Conventional Commits**: Siga o padrão de commits para mensagens claras:
+- `feat:` para novas funcionalidades
+- `fix:` para correções de bugs
+- `docs:` para documentação
+- `refactor:` para refatoração de código
 
 ## Suporte
 
 Bundle Pro
+
+Para dúvidas ou problemas, abra uma issue no GitHub ou entre em contato com a equipe de suporte.
+
+**Documentação adicional:**
+- [Databricks CLI Documentation](https://docs.databricks.com/dev-tools/cli/index.html)
+- [Databricks Asset Bundles](https://docs.databricks.com/dev-tools/bundles/index.html)
+- [Git Flow Workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow)
+
+## FAQ (Perguntas Frequentes)
+
+**P: Posso criar um projeto sem usar Git?**
+R: Não, o Bundle Pro requer Git para gerenciamento de branches e fluxo de desenvolvimento.
+
+**P: Como faço para atualizar o Bundle Pro?**
+R: Execute `cd ~/bundlepro && git pull origin master && bash install.sh`
+
+**P: Onde são armazenados os dados de configuração?**
+R: Em `~/.bundlepro/config` com permissões restritas (apenas seu usuário pode ler).
+
+**P: Posso usar o mesmo token para múltiplos workspaces?**
+R: Não recomendado. Cada workspace deve ter seu próprio token de autenticação.
+
+**P: Como faço para remover um projeto criado?**
+R: Basta excluir a branch feature e o diretório do projeto no seu repositório.
+
+**P: Qual a diferença entre Job e Dashboard?**
+R: Job executa código agendado, Dashboard exibe visualizações de dados. Ambos podem ser criados juntos.
+
+**P: Posso criar múltiplos notebooks em um projeto?**
+R: Sim, você pode adicionar manualmente mais notebooks na pasta `src/` após a criação do projeto.
