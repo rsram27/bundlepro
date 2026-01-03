@@ -110,6 +110,7 @@ Projeto 'analise-vendas' criado com sucesso!
 ```bash
 bundlepro <nome-projeto>   # Criar novo projeto
 bundlepro configure        # Configurar workspace e autenticação
+bundlepro config           # Mostrar configuração atual
 bundlepro --help           # Mostrar ajuda
 bundlepro --version        # Mostrar versão
 ```
@@ -126,15 +127,50 @@ Após executar `bundlepro configure`, seus dados de conexão são armazenados em
 
 Este arquivo:
 - Contém endereço do workspace e token de autenticação
-- Tem permissões restritas (readable apenas para o usuário)
+- Tem permissões restritas (600 - apenas leitura/escrita para o usuário)
 - **NÃO é afetado** por atualizações ou pull do repositório
 - Pode ser atualizado a qualquer momento com `bundlepro configure`
+- **NUNCA deve ser compartilhado ou adicionado ao Git**
 
 **Exemplo de conteúdo do arquivo:**
-```ini
-[databricks]
-workspace_url = https://seu-workspace.databricks.com
-auth_token = seu-token-aqui
+```bash
+#!/bin/bash
+# Bundle Pro Configuration
+# ATENÇÃO: Este arquivo contém credenciais sensíveis
+# Não compartilhe este arquivo ou adicione ao Git
+
+export DATABRICKS_HOST="https://seu-workspace.databricks.com"
+export DATABRICKS_TOKEN="seu-token-aqui"
+export DATABRICKS_EMAIL="seu-email@empresa.com"
+```
+
+### Variáveis de Ambiente
+
+O Bundle Pro agora suporta duas formas de configuração:
+
+**Opção 1: Configuração via arquivo (recomendado para segurança)**
+```bash
+bundlepro configure
+```
+
+**Opção 2: Configuração manual via variáveis de ambiente**
+```bash
+# Configure manualmente as variáveis de ambiente
+export DATABRICKS_HOST="https://seu-workspace.databricks.com"
+export DATABRICKS_TOKEN="seu-token-aqui"
+export DATABRICKS_EMAIL="seu-email@empresa.com"
+
+# Verifique a configuração
+bundlepro config
+```
+
+**Opção 3: Carregar variáveis de ambiente automaticamente**
+```bash
+# Adicione ao seu ~/.bashrc ou ~/.zshrc
+source ~/.bundlepro/env.sh
+
+# Recarregue o shell
+source ~/.bashrc
 ```
 
 ### Atualizar Configuração
@@ -159,6 +195,61 @@ bash uninstall.sh
 - Databricks CLI instalado
 - Acesso ao repositório BundlePro (chave SSH configurada)
 - Python 3.7+ (para execução de scripts)
+
+## Segurança
+
+### Melhores Práticas de Segurança
+
+1. **Nunca compartilhe seu token de autenticação**
+   - O token dá acesso completo ao seu workspace Databricks
+   - Se comprometido, revogue imediatamente no Databricks
+
+2. **Proteja o arquivo de configuração**
+   - O arquivo `~/.bundlepro/config` tem permissões 600 (apenas você pode ler/escrever)
+   - Nunca adicione este arquivo ao Git
+   - Nunca compartilhe este arquivo
+
+3. **Use variáveis de ambiente com cuidado**
+   - Evite colocar tokens em scripts ou arquivos de configuração
+   - Prefira usar o comando `bundlepro configure` para configuração segura
+
+4. **Revogação de tokens**
+   - Se suspeitar de comprometimento, revogue o token imediatamente:
+   ```bash
+   # No Databricks: Settings > User Settings > Access Tokens
+   # Revogue o token e gere um novo
+   ```
+
+5. **Limpeza de histórico**
+   - Se acidentalmente cometer o token no Git:
+   ```bash
+   git filter-branch --force --index-filter \
+     'git rm --cached --ignore-unmatch ~/.bundlepro/config' \
+     --prune-empty --tag-name-filter cat -- --all
+   ```
+
+### Como o Bundle Pro protege suas credenciais
+
+- **Permissões restritas**: Arquivo de configuração criado com `chmod 600`
+- **Sem armazenamento em texto claro**: Tokens são exportados como variáveis de ambiente
+- **Aviso de segurança**: Mensagens claras sobre proteção de credenciais
+- **Opção de variáveis de ambiente**: Permite configuração manual sem armazenamento
+
+### Verificação de Segurança
+
+Para verificar suas configurações de segurança:
+```bash
+# Verifique permissões do arquivo de configuração
+ls -la ~/.bundlepro/config
+
+# Deve mostrar: -rw------- (permissões 600)
+
+# Verifique se o arquivo não está no Git
+cat ~/.gitignore | grep bundlepro
+
+# Verifique configuração atual (sem mostrar token)
+bundlepro config
+```
 
 ## Fluxo de Desenvolvimento
 
@@ -711,3 +802,20 @@ R: Job executa código agendado, Dashboard exibe visualizações de dados. Ambos
 
 **P: Posso criar múltiplos notebooks em um projeto?**
 R: Sim, você pode adicionar manualmente mais notebooks na pasta `src/` após a criação do projeto.
+
+**P: Como faço para configurar as variáveis de ambiente manualmente?**
+R: Você pode exportar as variáveis diretamente no shell:
+```bash
+export DATABRICKS_HOST='https://seu-workspace.databricks.com'
+export DATABRICKS_TOKEN='seu-token-aqui'
+export DATABRICKS_EMAIL='seu-email@empresa.com'
+```
+
+**P: É seguro armazenar o token no arquivo de configuração?**
+R: O arquivo é protegido com permissões 600 e contém avisos de segurança. No entanto, a opção mais segura é usar variáveis de ambiente temporárias ou configurar manualmente a cada sessão.
+
+**P: Como faço para verificar minha configuração atual?**
+R: Execute `bundlepro config` para ver as informações de configuração sem expor o token.
+
+**P: O que fazer se meu token for comprometido?**
+R: Revogue imediatamente no Databricks (Settings > User Settings > Access Tokens) e gere um novo token. Em seguida, execute `bundlepro configure` para atualizar a configuração.

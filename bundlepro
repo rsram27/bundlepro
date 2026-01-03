@@ -16,6 +16,7 @@ NC='\033[0m' # No Color
 # Configuração
 CONFIG_DIR="$HOME/.bundlepro"
 CONFIG_FILE="$CONFIG_DIR/config"
+ENV_FILE="$CONFIG_DIR/env.sh"
 
 # Variaveis de controle
 CREATE_JOB=false
@@ -27,12 +28,24 @@ CREATE_DASHBOARD=false
 
 # Verificar e carregar configuração
 load_config() {
+    # Verificar se variáveis de ambiente já estão configuradas
+    if [ -n "$DATABRICKS_HOST" ] && [ -n "$DATABRICKS_TOKEN" ]; then
+        echo -e "${GREEN}[OK] Variáveis de ambiente já configuradas${NC}"
+        return 0
+    fi
+    
+    # Verificar se arquivo de configuração existe
     if [ ! -f "$CONFIG_FILE" ]; then
         echo -e "${RED}[ERRO] Configuração não encontrada!${NC}"
         echo ""
         echo -e "${CYAN}Execute 'bundlepro configure' para configurar o workspace e autenticação.${NC}"
+        echo -e "${CYAN}OU configure as variáveis de ambiente manualmente:${NC}"
+        echo "  export DATABRICKS_HOST='https://seu-workspace.databricks.com'"
+        echo "  export DATABRICKS_TOKEN='seu-token-aqui'"
         exit 1
     fi
+    
+    # Carregar configuração
     source "$CONFIG_FILE"
     
     if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
@@ -84,6 +97,8 @@ configure_bundlepro() {
 #!/bin/bash
 # Bundle Pro Configuration
 # Generated: $(date)
+# ATENÇÃO: Este arquivo contém credenciais sensíveis
+# Não compartilhe este arquivo ou adicione ao Git
 
 export DATABRICKS_HOST="$DATABRICKS_HOST"
 export DATABRICKS_TOKEN="$DATABRICKS_TOKEN"
@@ -92,14 +107,94 @@ CONFIGEOF
     
     chmod 600 "$CONFIG_FILE"
     
+    # Criar arquivo para carregar variáveis de ambiente
+    cat > "$ENV_FILE" << ENVEOF
+#!/bin/bash
+# Bundle Pro Environment Setup
+# Carrega variáveis de ambiente para uso com bundlepro
+# Uso: source ~/.bundlepro/env.sh
+
+if [ -f "$CONFIG_FILE" ]; then
+    . "$CONFIG_FILE"
+    echo "✓ Variáveis de ambiente configuradas:"
+    echo "  - DATABRICKS_HOST: \$DATABRICKS_HOST"
+    echo "  - DATABRICKS_EMAIL: \$DATABRICKS_EMAIL"
+else
+    echo "✗ Arquivo de configuração não encontrado: $CONFIG_FILE"
+fi
+ENVEOF
+    
+    chmod 755 "$ENV_FILE"
+    
     echo ""
     echo -e "${GREEN}[OK] Configuração salva em $CONFIG_FILE${NC}"
+    echo -e "${GREEN}[OK] Script de ambiente criado em $ENV_FILE${NC}"
+    echo ""
+    echo -e "${YELLOW}[SEGURANÇA] Arquivo de configuração protegido com permissões 600${NC}"
+    echo -e "${YELLOW}[SEGURANÇA] Não compartilhe este arquivo ou adicione ao Git${NC}"
+    echo ""
+    echo -e "${CYAN}Para usar as variáveis de ambiente, execute:${NC}"
+    echo "  source ~/.bundlepro/env.sh"
+    echo ""
+    echo -e "${CYAN}OU adicione ao seu ~/.bashrc ou ~/.zshrc:${NC}"
+    echo "  echo 'source ~/.bundlepro/env.sh' >> ~/.bashrc"
+    echo "  source ~/.bashrc"
     echo ""
     echo -e "${CYAN}Próximas ações:${NC}"
     echo "1. Clone o repositório: git clone git@github.com:<your-git-username>/<your-bundle-pro-repo>.git ~/bundlepro"
     echo "2. Instale: cd ~/bundlepro && bash install.sh"
     echo "3. Clone o repositório de projetos: git clone git@github.com:<your-git-username>/<your-projects-repo>.git ~/<your-projects-repo>"
     echo "4. Configure o repositório de projetos: bundlepro configure-projects-repo ~/<your-projects-repo>"
+}
+
+# Mostrar informações de configuração
+show_config() {
+    echo -e "${GREEN}========================================${NC}"
+    echo -e "${GREEN}Configuração Atual${NC}"
+    echo -e "${GREEN}========================================${NC}"
+    echo ""
+    
+    if [ -f "$CONFIG_FILE" ]; then
+        echo -e "${CYAN}Arquivo de configuração:${NC} $CONFIG_FILE"
+        echo -e "${CYAN}Permissões:${NC} $(stat -c '%a' "$CONFIG_FILE")"
+        echo ""
+        
+        # Carregar configuração para mostrar informações
+        source "$CONFIG_FILE" 2>/dev/null || true
+        
+        if [ -n "$DATABRICKS_HOST" ]; then
+            echo -e "${BLUE}Workspace:${NC} $DATABRICKS_HOST"
+        else
+            echo -e "${YELLOW}Workspace:${NC} Não configurado"
+        fi
+        
+        if [ -n "$DATABRICKS_EMAIL" ]; then
+            echo -e "${BLUE}Email:${NC} $DATABRICKS_EMAIL"
+        else
+            echo -e "${YELLOW}Email:${NC} Não configurado"
+        fi
+        
+        if [ -n "$DATABRICKS_TOKEN" ]; then
+            echo -e "${BLUE}Token:${NC} ******** (configurado)"
+        else
+            echo -e "${YELLOW}Token:${NC} Não configurado"
+        fi
+        
+        if [ -n "$PROJECTS_DIR_NAME" ]; then
+            echo -e "${BLUE}Repositório de projetos:${NC} $PROJECTS_DIR_NAME"
+        else
+            echo -e "${YELLOW}Repositório de projetos:${NC} Não configurado"
+        fi
+        
+        echo ""
+        echo -e "${GREEN}Para usar as variáveis de ambiente, execute:${NC}"
+        echo "  source ~/.bundlepro/env.sh"
+        echo ""
+        
+    else
+        echo -e "${RED}Arquivo de configuração não encontrado!${NC}"
+        echo -e "${CYAN}Execute 'bundlepro configure' para criar a configuração.${NC}"
+    fi
 }
 
 # Configurar o repositório de projetos
@@ -127,7 +222,19 @@ configure_projects_repo() {
         exit 1
     fi
     
-    echo "export PROJECTS_DIR_NAME='$PROJECTS_REPO_PATH'" >> "$CONFIG_FILE"
+    # Adicionar ao arquivo de configuração
+    if [ -f "$CONFIG_FILE" ]; then
+        # Verificar se já existe
+        if grep -q "PROJECTS_DIR_NAME" "$CONFIG_FILE"; then
+            # Atualizar valor existente
+            sed -i "s|export PROJECTS_DIR_NAME=.*|export PROJECTS_DIR_NAME='$PROJECTS_REPO_PATH'|" "$CONFIG_FILE"
+        else
+            # Adicionar nova linha
+            echo "export PROJECTS_DIR_NAME='$PROJECTS_REPO_PATH'" >> "$CONFIG_FILE"
+        fi
+    else
+        echo "export PROJECTS_DIR_NAME='$PROJECTS_REPO_PATH'" > "$CONFIG_FILE"
+    fi
     
     echo ""
     echo -e "${GREEN}[OK] Repositório de projetos configurado em $CONFIG_FILE${NC}"
@@ -153,6 +260,7 @@ show_usage() {
     echo "  bundlepro <nome-do-projeto>"
     echo "  bundlepro configure"
     echo "  bundlepro configure-projects-repo <caminho-para-o-repositorio-de-projetos>"
+    echo "  bundlepro config"
     echo "  bundlepro --version"
     echo "  bundlepro --help"
     echo ""
@@ -162,11 +270,24 @@ show_usage() {
     echo ""
     echo -e "${CYAN}Requisitos:${NC}"
     echo "  - Executar dentro do seu repositorio de projetos (git clone)"
-    echo "  - Executar 'bundlepro configure' antes de usar"
+    echo "  - Configurar variáveis de ambiente ou executar 'bundlepro configure'"
+    echo ""
+    echo -e "${CYAN}Configuração de ambiente:${NC}"
+    echo "  Opcão 1: Configure variáveis de ambiente manualmente:"
+    echo "    export DATABRICKS_HOST='https://seu-workspace.databricks.com'"
+    echo "    export DATABRICKS_TOKEN='seu-token-aqui'"
+    echo "    export DATABRICKS_EMAIL='seu-email@empresa.com'"
+    echo ""
+    echo "  Opcão 2: Use o comando de configuração:"
+    echo "    bundlepro configure"
+    echo ""
+    echo "  Opcão 3: Verifique a configuração atual:"
+    echo "    bundlepro config"
     echo ""
     echo -e "${CYAN}Comportamento:${NC}"
     echo "  - Cria automaticamente a branch: feature/<nome-do-projeto>"
     echo "  - Cada projeto deve ter sua propria branch"
+    echo "  - Variáveis de ambiente são usadas para autenticação"
     echo ""
 }
 
@@ -348,7 +469,7 @@ resources:
       
       email_notifications:
         on_failure:
-          - ${DATABRICKS_EMAIL}
+          - ${DATABRICKS_EMAIL:-seu-email@empresa.com}
       
       max_concurrent_runs: 1
       timeout_seconds: 7200
@@ -657,6 +778,11 @@ fi
 
 if [ "$1" == "configure-projects-repo" ]; then
     configure_projects_repo "$2"
+    exit 0
+fi
+
+if [ "$1" == "config" ] || [ "$1" == "show-config" ]; then
+    show_config
     exit 0
 fi
 
